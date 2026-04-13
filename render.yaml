@@ -1,0 +1,6 @@
+services:
+  - type: static
+    name: roadtrip-planner
+    buildCommand: npm install && npm run build
+    publishPath: dist
+    pullRequestPreviewsEnabled: false
