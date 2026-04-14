@@ -1,59 +1,72 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useState } from 'react'
+import { useTripStore } from './store/tripStore'
+import { useUiStore, VIEWS } from './store/uiStore'
+import { useApiStore } from './store/apiStore'
+import { isSharedTrip, decodeTripFromUrl, clearShareHash } from './utils/share'
+import { isOnline, onConnectionChange } from './utils/offline'
 import ApiKeySetup from './components/ApiKeySetup'
 import TripForm from './components/TripForm'
 import LoadingScreen from './components/LoadingScreen'
 import Itinerary from './components/Itinerary'
 import SavedTrips from './components/SavedTrips'
-import { getTrips, saveTrip, deleteTrip, getCurrentTrip, setCurrentTrip, getApiConfig, saveApiConfig, hasApiConfig, generateTripId } from './utils/storage'
 import { generateItinerary } from './utils/ai'
-
-const VIEWS = {
-  HOME: 'home',
-  FORM: 'form',
-  LOADING: 'loading',
-  ITINERARY: 'itinerary',
-}
+import { getTheme, applyTheme } from './utils/theme'
 
 export default function App() {
-  const [view, setView] = useState(VIEWS.HOME)
-  const [trips, setTrips] = useState([])
-  const [currentItinerary, setCurrentItinerary] = useState(null)
-  const [error, setError] = useState(null)
-  const [showApiSetup, setShowApiSetup] = useState(false)
-  const [savedCurrentTrip, setSavedCurrentTrip] = useState(false)
+  const { currentItinerary, isSaved, loadTrips, loadCurrentTrip, setItinerary, saveTrip, clearCurrent } = useTripStore()
+  const { view, showApiSetup, error, theme, setView, goHome, toggleApiSetup, setError, clearError } = useUiStore()
+  const { isConfigured } = useApiStore()
+
+  const [online, setOnline] = useState(true)
 
   useEffect(() => {
-    setTrips(getTrips())
-    const saved = getCurrentTrip()
-    if (saved?.itinerary) {
-      setCurrentItinerary(saved)
-      setSavedCurrentTrip(true)
-      setView(VIEWS.ITINERARY)
-    }
+    setOnline(isOnline())
+    const unsub = onConnectionChange(setOnline)
+    return unsub
   }, [])
 
-  const handleNewTrip = useCallback(() => {
-    if (!hasApiConfig()) {
-      setShowApiSetup(true)
+  useEffect(() => {
+    // Check for shared trip in URL
+    if (isSharedTrip()) {
+      const sharedTrip = decodeTripFromUrl()
+      if (sharedTrip) {
+        sharedTrip._shared = true
+        setItinerary(sharedTrip)
+        setView(VIEWS.ITINERARY)
+        useTripStore.getState().fetchWeatherForTrip()
+        clearShareHash()
+        return
+      }
+    }
+
+    loadTrips()
+    const loaded = loadCurrentTrip()
+    if (loaded) {
+      setView(VIEWS.ITINERARY)
+      // Fetch meteo anche per viaggi salvati
+      useTripStore.getState().fetchWeatherForTrip()
+    }
+    // Initialize theme
+    const savedTheme = getTheme()
+    applyTheme(savedTheme)
+  }, [])
+
+  const handleNewTrip = () => {
+    if (!isConfigured) {
+      toggleApiSetup(true)
       return
     }
     setError(null)
     setView(VIEWS.FORM)
-  }, [])
+  }
 
-  const handleApiSave = useCallback((config) => {
-    saveApiConfig(config)
-    setShowApiSetup(false)
-  }, [])
-
-  const handleGenerate = useCallback(async (formData) => {
+  const handleGenerate = async (formData) => {
     setError(null)
     setView(VIEWS.LOADING)
-
     try {
       const itinerary = await generateItinerary(formData)
       const trip = {
-        id: generateTripId(),
+        id: useTripStore.getState().generateId(),
         title: itinerary.title,
         destination: formData.destination,
         startDate: formData.startDate,
@@ -62,85 +75,43 @@ export default function App() {
         ...itinerary,
         createdAt: new Date().toISOString(),
       }
-
-      setCurrentItinerary(trip)
-      setCurrentTrip(trip)
-      setSavedCurrentTrip(false)
+      setItinerary(trip)
+      // Fetch meteo in background (non blocca la navigazione)
+      useTripStore.getState().fetchWeatherForTrip()
       setView(VIEWS.ITINERARY)
     } catch (err) {
       setError(err.message)
       setView(VIEWS.FORM)
     }
-  }, [])
+  }
 
-  const handleSaveTrip = useCallback((trip) => {
-    saveTrip(trip)
-    setTrips(getTrips())
-    setSavedCurrentTrip(true)
-  }, [])
-
-  const handleLoadTrip = useCallback((trip) => {
-    setCurrentItinerary(trip)
-    setCurrentTrip(trip)
-    setSavedCurrentTrip(!!trips.find(t => t.id === trip.id))
-    setView(VIEWS.ITINERARY)
-  }, [trips])
-
-  const handleDeleteTrip = useCallback((id) => {
-    deleteTrip(id)
-    setTrips(getTrips())
-  }, [])
-
-  const handleBack = useCallback(() => {
-    setCurrentItinerary(null)
-    setCurrentTrip(null)
-    setSavedCurrentTrip(false)
-    setError(null)
-    setView(VIEWS.HOME)
-  }, [])
-
-  const openApiSetupFromItinerary = useCallback(() => {
-    setShowApiSetup(true)
-  }, [])
+  const handleBack = () => {
+    clearCurrent()
+    goHome()
+  }
 
   return (
     <div className="app">
+      {!online && (
+        <div className="offline-banner">
+          <i className="fas fa-wifi-slash"></i> Sei offline — i viaggi salvati sono ancora disponibili
+        </div>
+      )}
       {view === VIEWS.HOME && (
-        <SavedTrips
-          trips={trips}
-          onLoad={handleLoadTrip}
-          onDelete={handleDeleteTrip}
-          onNewTrip={handleNewTrip}
-        />
+        <SavedTrips onNewTrip={handleNewTrip} />
       )}
-
       {view === VIEWS.FORM && (
-        <TripForm
-          onGenerate={handleGenerate}
-          onBack={handleBack}
-        />
+        <TripForm onGenerate={handleGenerate} onBack={handleBack} />
       )}
-
       {view === VIEWS.LOADING && (
         <LoadingScreen destination={currentItinerary?.destination} />
       )}
-
       {view === VIEWS.ITINERARY && currentItinerary && (
-        <Itinerary
-          itinerary={currentItinerary}
-          onSave={handleSaveTrip}
-          onBack={handleBack}
-          isSaved={savedCurrentTrip}
-        />
+        <Itinerary onBack={handleBack} />
       )}
-
       {showApiSetup && (
-        <ApiKeySetup
-          onSave={handleApiSave}
-          currentConfig={getApiConfig()}
-        />
+        <ApiKeySetup />
       )}
-
       {error && (
         <div className="error-toast">
           <div className="error-toast-content">
@@ -149,29 +120,35 @@ export default function App() {
               <strong>Errore</strong>
               <p>{error}</p>
             </div>
-            <button className="btn-icon" onClick={() => setError(null)}>
+            <button className="btn-icon" onClick={clearError}>
               <i className="fas fa-times"></i>
             </button>
           </div>
           <div className="error-toast-actions">
-            <button className="btn-secondary btn-sm" onClick={() => setError(null)}>Chiudi</button>
-            <button className="btn-primary btn-sm" onClick={() => setShowApiSetup(true)}>
+            <button className="btn-secondary btn-sm" onClick={clearError}>Chiudi</button>
+            <button className="btn-primary btn-sm" onClick={() => toggleApiSetup(true)}>
               <i className="fas fa-cog"></i> Impostazioni API
             </button>
           </div>
         </div>
       )}
-
-      {/* Floating API settings button on home */}
       {view === VIEWS.HOME && !showApiSetup && (
-        <button
-          className="fab-settings"
-          onClick={() => setShowApiSetup(true)}
-          title="Impostazioni API"
-        >
+        <button className="fab-settings" onClick={() => toggleApiSetup(true)} title="Impostazioni API">
           <i className="fas fa-cog"></i>
         </button>
       )}
+      {/* Theme Toggle */}
+      <button
+        className="fab-theme"
+        onClick={() => {
+          const current = useUiStore.getState().theme
+          const next = current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light'
+          useUiStore.getState().setTheme(next)
+        }}
+        title={`Tema: ${theme === 'light' ? 'Chiaro' : theme === 'dark' ? 'Scuro' : 'Sistema'}`}
+      >
+        <i className={`fas ${theme === 'dark' ? 'fa-moon' : theme === 'light' ? 'fa-sun' : 'fa-desktop'}`}></i>
+      </button>
     </div>
   )
 }

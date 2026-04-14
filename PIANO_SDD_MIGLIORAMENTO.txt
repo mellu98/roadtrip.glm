@@ -1,0 +1,1092 @@
+================================================================================
+  ROADTRIP PLANNER GLM — PIANO SDD COMPLETO DI MIGLIORAMENTO
+  Analisi strategica e roadmap di implementazione
+  Data: 14 Aprile 2026
+  Basato su: confronto con TREK (github.com/mauriceboe/TREK)
+================================================================================
+
+
+INDICE
+------
+1. ANALISI DELLO STATO ATTUALE
+2. PRINCIPI GUIDANTI
+3. FASE 1 — IMPATTO VISIVO IMMEDIATO
+4. FASE 2 — INTERATTIVITÀ E GESTIONE
+5. FASE 3 — EXPERIENCE AVANZATA
+6. FASE 4 — DIFFERENZIAZIONE AI
+7. FASE 5 — QUALITÀ PROFESSIONALE
+8. DEPENDENCIES E TIMELINE
+9. RISCHI E MITIGAZIONI
+10. METRICHE DI SUCCESSO
+
+
+================================================================================
+1. ANALISI DELLO STATO ATTUALE
+================================================================================
+
+ARCHITETTURA
+  - SPA 100% client-side, nessun backend
+  - React 18 + Vite, JS puro (no TypeScript)
+  - Persistenza: localStorage
+  - PWA con Workbox (caching asset statici)
+  - Nessun state manager globale (props drilling)
+
+STRUTTURA FILES
+  src/
+    App.jsx              — Router manuale con useState (4 view)
+    components/
+      ApiKeySetup.jsx    — Modal configurazione provider AI
+      TripForm.jsx       — Wizard 5 step per nuovo viaggio
+      LoadingScreen.jsx  — Animazione caricamento
+      Itinerary.jsx      — Visualizzazione itinerario + detail panel
+      SavedTrips.jsx     — Home con griglia viaggi salvati
+    utils/
+      ai.js              — Chiamata API OpenAI-compatible + parsing JSON
+      maps.js            — Link esterni Google Maps (nessuna mappa embed)
+      pdf.js             — Export PDF client-side con html2pdf.js
+      storage.js         — CRUD localStorage per viaggi e config
+
+STACK ATTUALE
+  Dependencies: react, react-dom, html2pdf.js
+  DevDeps: @vitejs/plugin-react, vite, vite-plugin-pwa
+  CSS: custom CSS con variabili (no Tailwind, no CSS-in-JS)
+  Font: Playfair Display + Inter
+  Icone: Font Awesome 6.4 (CDN)
+
+PUNTI DI FORZA (DA MANTENERE)
+  + Architettura zero-backend: deployabile ovunque come static site
+  + Generazione AI di itinerari completi (differenziale chiave)
+  + PWA già funzionante
+  + UI curata con animazioni e timeline
+  + Supporto multi-provider AI (OpenAI, Groq, OpenRouter, custom)
+
+PUNTI DEBOLI (DA RISOLVERE)
+  - Nessuna mappa interattiva (solo link esterni)
+  - Nessun meteo integrato
+  - Packing list non interattiva (solo testo generato dall'AI)
+  - Budget passivo (solo visualizzazione, nessun tracking reale)
+  - Nessun drag & drop per riordinare attività
+  - Nessun dark mode
+  - Nessun state manager (App.jsx come prop drilling hub)
+  - Nessun TypeScript
+  - Offline limitato (solo asset statici, niente dati)
+  - PDF basilare (senza immagini, senza cover professionale)
+  - Nessuna validazione dei luoghi generati dall'AI
+  - Nessuna condivisione viaggio
+  - Nessun sistema di categorie/filter per la mappa
+  - Nessun export alternativo (solo PDF)
+
+
+================================================================================
+2. PRINCIPI GUIDANTI
+================================================================================
+
+PRINCIPIO 1: RESTARE CLIENT-SIDE
+  Non aggiungere un backend. La forza dell'app è essere deployabile come
+  static site su GitHub Pages, Vercel, Netlify, ecc. Ogni feature deve
+  funzionare senza server.
+
+PRINCIPIO 2: AI-FIRST
+  L'IA è il cuore. Ogni miglioramento deve POTENZIARE l'esperienza AI,
+  non sostituirla. TREK è manuale, noi siamo AI-first. Questo è il
+  nostro differenziale competitivo.
+
+PRINCIPIO 3: PROGRESSIVE ENHANCEMENT
+  Ogni feature deve funzionare anche senza dati aggiuntivi. Se Open-Meteo
+  non risponde, l'app continua a funzionare senza meteo. Se Leaflet non
+  carica, i link a Google Maps restano come fallback.
+
+PRINCIPIO 4: MOBILE-FIRST
+  L'app è PWA. Ogni feature è pensata prima per mobile, poi per desktop.
+
+PRINCIPIO 5: PERFORMANCE
+  Lazy loading per tutte le nuove dipendenze (Leaflet, Chart.js, ecc.).
+  Non gonfiare il bundle iniziale.
+
+
+================================================================================
+3. FASE 1 — IMPATTO VISIVO IMMEDIATO
+================================================================================
+
+Obiettivo: rendere l'app VISUALMENTE superiore in 1-2 giorni di lavoro.
+Le due feature che cambiano completamente la percezione dell'utente.
+
+------------------------------------------------------------------------
+TASK 1.1: MAPPA INTERATTIVA CON LEAFLET
+------------------------------------------------------------------------
+Priorità:     CRITICA
+Complessità:  Media
+Tempo stimato: 8-12 ore
+Ispirazione:  TREK — Leaflet + react-leaflet + clustering
+
+DESCRIZIONE
+  Sostituire i link "Apri in Maps" con una mappa Leaflet embeddata
+  che mostra tutti i marker delle attività del giorno corrente.
+
+NUOVE DIPENDENZE
+  - leaflet
+  - react-leaflet
+  - react-leaflet-cluster (per clustering marker vicini)
+
+COMPONENTI DA CREARE
+  src/components/MapView.jsx
+    - Mappa Leaflet con tile layer (OpenStreetMap — gratis, no API key)
+    - Marker per ogni attività del giorno corrente
+    - Popup con info sintetica (nome, tipo, prezzo, rating)
+    - Clustering automatico quando marker sono vicini
+    - Polylines che collegano le attività in ordine temporale
+    - Fallback: se Leaflet non carica, mostrare i link Google Maps attuali
+    - Tile source configurabile (OpenStreetMap default, opzionalmente
+      Mapbox/Stadia Maps per stile dark)
+
+  src/components/MapMarker.jsx
+    - Marker custom con icona per tipo (attrazione, ristorante, ecc.)
+    - Colore coerente con TYPE_CONFIG di Itinerary.jsx
+    - Numero d'ordine dell'attività nel marker
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: aggiungere <MapView> sopra la timeline del giorno
+  - vite.config.js: aggiungere runtime caching per tile di OpenStreetMap
+    nel workbox config
+  - src/styles.css: stili per .map-container, .map-marker, .map-popup
+  - package.json: aggiungere dipendenze leaflet
+
+SOTTO-TASK
+  1.1.1  Installare dipendenze leaflet + react-leaflet + cluster
+  1.1.2  Creare MapView.jsx con mappa base + tile OpenStreetMap
+  1.1.3  Aggiungere marker per attività con icone per tipo
+  1.1.4  Aggiungere clustering (MarkerClusterGroup)
+  1.1.5  Aggiungere polylines che collegano le attività in ordine
+  1.1.6  Aggiungere popup con info sintetica al click
+  1.1.7  Aggiungere pulsanti "Zoom su giorno" / "Vedi tutto"
+  1.1.8  Integrare in Itinerary.jsx (sopra la timeline)
+  1.1.9  Aggiungere fallback per quando Leaflet non carica
+  1.1.10 Aggiungere runtime caching tile nel Service Worker
+  1.1.11 Responsive: mappa a larghezza piena su mobile, sidebar su desktop
+  1.1.12 Fix CSS: import leaflet.css, stili custom marker
+
+CRITERI DI ACCETTAZIONE
+  - La mappa mostra tutti i marker delle attività del giorno corrente
+  - I marker hanno icone diverse per tipo (attrazione, ristorante, ecc.)
+  - I marker vicini si raggruppano in cluster
+  - Le attività sono collegate da una polyline in ordine temporale
+  - Click su un marker apre un popup con info
+  - Se Leaflet non carica, i link Google Maps funzionano come fallback
+  - La mappa è responsive (schermo intero su mobile, affiancata su desktop)
+  - I tile sono cachati dal Service Worker per offline
+
+------------------------------------------------------------------------
+TASK 1.2: PREVISIONI METEO CON OPEN-METEO
+------------------------------------------------------------------------
+Priorità:     ALTA
+Complessità:  Bassa
+Tempo stimato: 4-6 ore
+Ispirazione:  TREK — Open-Meteo API (gratis, no API key)
+
+DESCRIZIONE
+  Integrare le previsioni meteo per ogni giorno dell'itinerario usando
+  l'API Open-Meteo (gratuita, senza API key, senza registrazione).
+
+API ENDPOINT
+  GET https://api.open-meteo.com/v1/forecast
+  Params: latitude, longitude, daily=temperature_2m_max,temperature_2m_min,
+          precipitation_sum,windspeed_10m_max,weathercode,
+          start_date, end_date, timezone=auto
+
+COMPONENTI DA CREARE
+  src/utils/weather.js
+    - fetchWeather(lat, lng, startDate, endDate) → array di daily forecasts
+    - getWeatherEmoji(weatherCode) → emoji per codice WMO
+    - getWeatherDescription(weatherCode, lang='it') → descrizione italiana
+    - Cache in localStorage con TTL 3 ore (per non spammare l'API)
+
+  src/components/WeatherBadge.jsx
+    - Badge compatto: emoji + temp max/min + probabilità pioggia
+    - Varianti: compact (inline nel tab giorno), expanded (nel day header)
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: aggiungere <WeatherBadge> nel day header
+  - Itinerary.jsx: aggiungere <WeatherBadge> in ogni day-tab (compact)
+  - App.jsx: fetch del meteo quando l'itinerario viene generato
+  - vite.config.js: aggiungere runtime caching per api.open-meteo.com
+
+SOTTO-TASK
+  1.2.1  Creare weather.js con fetch + cache + emoji + descrizioni
+  1.2.2  Creare WeatherBadge.jsx (variante compact)
+  1.2.3  Creare WeatherBadge.jsx (variante expanded)
+  1.2.4  Integrare fetch meteo nel flusso di generazione itinerario
+  1.2.5  Mostrare meteo nel day header (expanded)
+  1.2.6  Mostrare meteo nei day tabs (compact: solo emoji)
+  1.2.7  Aggiungere caching Service Worker per api.open-meteo.com
+  1.2.8  Gestire errori/fallback se l'API non risponde
+  1.2.9  Aggiungere supporto media climatico storico come fallback
+         (Open-Meteo ha API per climate averages)
+
+CRITERI DI ACCETTAZIONE
+  - Il meteo si mostra per ogni giorno dell'itinerario
+  - Badge compact: emoji + temp (nei tab)
+  - Badge expanded: emoji + temp max/min + pioggia + vento (nel header)
+  - I dati vengono cachati per 3 ore
+  - Se l'API non risponde, l'app funziona senza meteo (nessun crash)
+  - Il meteo è cachato dal Service Worker per offline parziale
+
+
+================================================================================
+4. FASE 2 — INTERATTIVITÀ E GESTIONE
+================================================================================
+
+Obiettivo: trasformare l'itinerario da "read-only" a "editabile".
+L'utente deve poter personalizzare il piano generato dall'IA.
+
+------------------------------------------------------------------------
+TASK 2.1: DRAG & DROP PER RIORDINARE ATTIVITÀ
+------------------------------------------------------------------------
+Priorità:     ALTA
+Complessità:  Media
+Tempo stimato: 8-10 ore
+Ispirazione:  TREK — Drag & Drop planner
+
+DESCRIZIONE
+  Permettere all'utente di trascinare le attività per riordinarle
+  dentro lo stesso giorno. Questo è fondamentale: l'IA genera un ordine
+  ma l'utente vuole personalizzarlo.
+
+NUOVE DIPENDENZE
+  - @dnd-kit/core + @dnd-kit/sortable + @dnd-kit/utilities
+
+COMPONENTI DA CREARE
+  src/components/SortableActivity.jsx
+    - Wrapper draggable per ActivityCard
+    - Drag handle (icona trascina)
+    - Animazione durante il drag
+    - Drop indicator (dove verrà posizionata l'attività)
+
+  src/components/SortableTimeline.jsx
+    - Timeline con DnD context
+    - Logica di riordino (onReorder callback)
+    - Cross-day drop (opzionale, fase avanzata)
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: sostituire timeline fissa con <SortableTimeline>
+  - App.jsx: aggiungere stato per attività riordinate
+  - storage.js: salvare l'ordine personalizzato nel viaggio
+
+SOTTO-TASK
+  2.1.1  Installare @dnd-kit/core + @dnd-kit/sortable
+  2.1.2  Creare SortableActivity.jsx con drag handle
+  2.1.3  Creare SortableTimeline.jsx con DnD context
+  2.1.4  Implementare riordino intra-giorno
+  2.1.5  Aggiungere feedback visivo durante il drag
+  2.1.6  Persistere l'ordine personalizzato in localStorage
+  2.1.7  (OPZIONALE) Implementare cross-day drag
+  2.1.8  Touch-friendly: drag handle grande su mobile
+
+CRITERI DI ACCETTAZIONE
+  - L'utente può trascinare le attività per riordinarle
+  - Il riordino funziona su mobile (touch) e desktop
+  - L'ordine personalizzato viene salvato e ripristinato
+  - La mappa si aggiorna con il nuovo ordine (polyline)
+  - Il PDF esporta con l'ordine personalizzato
+
+------------------------------------------------------------------------
+TASK 2.2: PACKING LIST INTERATTIVA
+------------------------------------------------------------------------
+Priorità:     MEDIA
+Complessità:  Bassa
+Tempo stimato: 4-6 ore
+Ispirazione:  TREK — Category-based checklists + templates
+
+DESCRIZIONE
+  Trasformare la packing list generata dall'IA da testo readonly a
+  lista interattiva con checkbox, categorie, e progressione.
+
+COMPONENTI DA CREARE
+  src/components/PackingList.jsx
+    - Lista con checkbox per ogni item
+    - Raggruppamento per categoria (Abbigliamento, Elettronica, Documenti,
+      Igiene, Altro)
+    - Barra di progressione (X/N item spuntati)
+    - Aggiunta/rimozione item personalizzati
+    - Persistenza in localStorage (per viaggio)
+
+  src/utils/packing.js
+    - categorizeItem(item) → categoria automatica via keyword matching
+    - getPackingTemplate(tripType) → template predefiniti
+      (spiaggia, montagna, città, business)
+    - mergeWithAIList(aiList, customItems) → merge intelligente
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: sostituire sezione packing list read-only con
+    <PackingList> interattiva
+  - ai.js: modificare il prompt per far generare item categorizzati
+    (aggiungere "category" nel JSON schema)
+  - storage.js: salvare stato packing list per viaggio
+
+SOTTO-TASK
+  2.2.1  Creare packing.js con categorizzazione e template
+  2.2.2  Creare PackingList.jsx con checkbox e categorie
+  2.2.3  Aggiungere barra di progressione
+  2.2.4  Permettere aggiunta/rimozione item custom
+  2.2.5  Modificare prompt AI per item categorizzati
+  2.2.6  Persistere stato spunta in localStorage
+  2.2.7  Aggiungere template rapidi (beach, mountain, city, business)
+
+CRITERI DI ACCETTAZIONE
+  - Ogni item ha un checkbox
+  - Gli item sono raggruppati per categoria
+  - C'è una barra di progressione (X/N)
+  - L'utente può aggiungere/rimuovere item
+  - Lo stato viene salvato e ripristinato
+  - I template permettono di aggiungere rapidamente item comuni
+
+------------------------------------------------------------------------
+TASK 2.3: BUDGET TRACKER REALE
+------------------------------------------------------------------------
+Priorità:     MEDIA
+Complessità:  Media
+Tempo stimato: 8-10 ore
+Ispirazione:  TREK — Budget tracking con categorie + pie chart
+
+DESCRIZIONE
+  Trasformare il budget da "visualizzazione passiva" a "tracker attivo".
+  L'IA genera stime → l'utente registra spese reali → confronto.
+
+NUOVE DIPENDENZE
+  - chart.js + react-chartjs-2 (per pie chart spese per categoria)
+
+COMPONENTI DA CREARE
+  src/components/BudgetTracker.jsx
+    - Panoramica: budget totale, speso, rimanente
+    - Pie chart spese per categoria (Alloggio, Cibo, Trasporti,
+      Attrazioni, Altro)
+    - Lista spese con aggiunta/modifica/eliminazione
+    - Confronto spesa reale vs stima AI per categoria
+    - Filtro per giorno
+
+  src/utils/budget.js
+    - Categorie predefinite con icone e colori
+    - Calcolo spesa per categoria
+    - Calcolo spesa per giorno
+    - Confronto reale vs stimato
+    - Formattazione multi-valuta
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: aggiungere tab "Budget" accanto a "Itinerario"
+  - Itinerary.jsx: aggiornare budget bar con dati reali
+  - App.jsx: gestire stato spese nel viaggio
+  - storage.js: salvare spese per viaggio
+
+SOTTO-TASK
+  2.3.1  Creare budget.js con categorie e calcoli
+  2.3.2  Creare BudgetTracker.jsx con overview + aggiunta spesa
+  2.3.3  Aggiungere pie chart (chart.js + react-chartjs-2)
+  2.3.4  Implementare confronto reale vs stimato
+  2.3.5  Aggiungere filtro spese per giorno
+  2.3.6  Persistere spese in localStorage
+  2.3.7  Aggiornare budget bar nell'header con dati reali
+  2.3.8  Supporto multi-valuta (conversione manuale)
+
+CRITERI DI ACCETTAZIONE
+  - L'utente può aggiungere spese reali con categoria e importo
+  - Il pie chart mostra la distribuzione per categoria
+  - C'è un confronto visivo spesa reale vs stima AI
+  - Il budget bar nell'header si aggiorna con le spese reali
+  - Le spese vengono salvate e ripristinate
+  - Il PDF esporta include spese reali
+
+------------------------------------------------------------------------
+TASK 2.4: EDITING ATTIVITÀ
+------------------------------------------------------------------------
+Priorità:     MEDIA
+Complessità:  Bassa-Media
+Tempo stimato: 6-8 ore
+Ispirazione:  TREK — Edit inline di ogni campo
+
+DESCRIZIONE
+  Permettere all'utente di modificare le attività generate dall'IA:
+  cambiare nome, orario, prezzo, aggiungere note personali, ecc.
+
+COMPONENTI DA CREARE
+  src/components/ActivityEditor.jsx
+    - Form inline per editare un'attività
+    - Campi: nome, orario, durata, prezzo, descrizione, note personali
+    - Salvataggio automatico (no pulsante "salva")
+    - Cancellazione attività
+    - Aggiunta nuova attività manuale
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: aggiungere modalità edit al detail panel
+  - storage.js: salvare modifiche alle attività
+
+SOTTO-TASK
+  2.4.1  Creare ActivityEditor.jsx con form inline
+  2.4.2  Aggiungere pulsante "Modifica" nel detail panel
+  2.4.3  Implementare salvataggio automatico
+  2.4.4  Implementare cancellazione attività (con conferma)
+  2.4.5  Implementare aggiunta attività manuale
+  2.4.6  Persistere modifiche in localStorage
+
+CRITERI DI ACCETTAZIONE
+  - L'utente può modificare ogni campo di un'attività
+  - L'utente può cancellare un'attività
+  - L'utente può aggiungere un'attività manuale
+  - Le modifiche vengono salvate automaticamente
+  - Mappa e PDF si aggiornano con le modifiche
+
+
+================================================================================
+5. FASE 3 — EXPERIENCE AVANZATA
+================================================================================
+
+Obiettivo: feature che elevano l'app da "utility" a "esperienza completa".
+
+------------------------------------------------------------------------
+TASK 3.1: DARK MODE COMPLETO
+------------------------------------------------------------------------
+Priorità:     MEDIA
+Complessità:  Bassa
+Tempo stimato: 4-6 ore
+Ispirazione:  TREK — Full light/dark theme
+
+DESCRIZIONE
+  Aggiungere dark mode con toggle, persistenza preferenza, e
+  transizione fluida tra i due temi.
+
+COMPONENTI DA CREARE
+  src/utils/theme.js
+    - getTheme() → 'light' | 'dark' | 'system'
+    - setTheme(theme) → salva preferenza + applica
+    - listenToSystemTheme() → observer per preferenza OS
+    - applyTheme() → aggiorna CSS custom properties
+
+MODIFICHE A FILE ESISTENTI
+  - styles.css: aggiungere sezione [data-theme="dark"] con override
+    di tutte le variabili CSS (circa 20 variabili)
+  - styles.css: aggiungere transizione su :root per cambio fluido
+  - App.jsx: aggiungere ThemeProvider + toggle
+  - index.html: aggiungere script inline per evitare flash bianco
+    (pattern FOUC prevention)
+  - vite.config.js: aggiornare theme_color nel manifest
+
+SOTTO-TASK
+  3.1.1  Creare theme.js con logica light/dark/system
+  3.1.2  Aggiungere variabili dark in styles.css
+  3.1.3  Aggiungere toggle nell'header o settings
+  3.1.4  Persistere preferenza in localStorage
+  3.1.5  Aggiungere supporto "system" (segue il SO)
+  3.1.6  Prevenire FOUC con script inline in index.html
+  3.1.7  Aggiornare meta theme-color dinamicamente
+  3.1.8  Stili specifici per mappa Leaflet in dark mode
+         (cambiare tile layer se disponibile)
+
+CRITERI DI ACCETTAZIONE
+  - Toggle funzionante tra light e dark
+  - La preferenza viene salvata e ripristinata
+  - L'opzione "system" segue la preferenza del SO
+  - Non c'è flash bianco al caricamento (FOUC prevention)
+  - La mappa ha un tile layer scuro in dark mode
+  - Il meta theme-color si aggiorna dinamicamente
+
+------------------------------------------------------------------------
+TASK 3.2: RICERCA LUOGHI CON OPENSTREETMAP (NOMINATIM)
+------------------------------------------------------------------------
+Priorità:     MEDIA
+Complessità:  Media
+Tempo stimato: 6-8 ore
+Ispirazione:  TREK — Place search via OSM + Google Places
+
+DESCRIZIONE
+  Aggiungere ricerca luoghi nel form per:
+  1) Autocompletamento della destinazione
+  2) Validazione che i posti generati dall'IA esistano
+  3) Permettere all'utente di aggiungere luoghi specifici al form
+
+API
+  Nominatim (OpenStreetMap): gratis, no API key, rate limit 1 req/s
+  GET https://nominatim.openstreetmap.org/search?q={query}&format=json
+
+COMPONENTI DA CREARE
+  src/components/PlaceSearch.jsx
+    - Input con autocompletamento
+    - Risultati con nome, tipo, posizione
+    - Debounce 300ms sulle query
+    - Rate limiting (rispetto policy Nominatim)
+    - Fallback: input libero se Nominatim non risponde
+
+  src/utils/places.js
+    - searchPlaces(query) → array di risultati
+    - geocode(location) → lat/lng
+    - Cache in localStorage (TTL 24h)
+
+MODIFICHE A FILE ESISTENTI
+  - TripForm.jsx: sostituire input testo con <PlaceSearch>
+  - ai.js: usare coordinate validate dal place search nel prompt
+  - vite.config.js: caching per nominatim.openstreetmap.org
+
+SOTTO-TASK
+  3.2.1  Creare places.js con search + geocode + cache
+  3.2.2  Creare PlaceSearch.jsx con autocompletamento
+  3.2.3  Sostituire input destinazione in TripForm
+  3.2.4  Passare coordinate validate nel prompt AI
+  3.2.5  Aggiungere debounce e rate limiting
+  3.2.6  Aggiungere fallback per quando Nominatim non risponde
+  3.2.7  Caching Service Worker per Nominatim
+
+CRITERI DI ACCETTAZIONE
+  - L'input destinazione mostra suggerimenti mentre si digita
+  - Ogni suggerimento ha nome e tipo (città, regione, paese)
+  - La selezione auto-compila destinazione + coordinate
+  - Le coordinate vengono passate all'AI per risultati più precisi
+  - Se Nominatim non risponde, l'input funziona come testo libero
+  - Il rate limiting rispetta le policy di Nominatim
+
+------------------------------------------------------------------------
+TASK 3.3: CONDIVISIONE VIAGGIO (READ-ONLY)
+------------------------------------------------------------------------
+Priorità:     BASSA
+Complessità:  Media
+Tempo stimato: 6-8 ore
+Ispirazione:  TREK — Invite links (ma senza backend)
+
+DESCRIZIONE
+  Permettere di condividere un itinerario senza backend:
+  codificare il viaggio in JSON compresso nell'URL (hash fragment).
+  L'utente A condivide il link → l'utente B vede l'itinerario read-only.
+
+NUOVE DIPENDENZE
+  - lz-string (compressione JSON per URL corti)
+
+COMPONENTI DA CREARE
+  src/utils/share.js
+    - encodeTripToUrl(trip) → URL con hash fragment compresso
+    - decodeTripFromUrl() → trip object dall'URL
+    - isSharedTrip() → true se l'URL contiene un viaggio condiviso
+    - generateShareLink(trip) → link completo copiabile
+
+  src/components/ShareModal.jsx
+    - Genera link di condivisione
+    - Pulsante copia link
+    - QR code per condividere su mobile (opzionale, dipendenza qrcode.react)
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: aggiungere pulsante "Condividi"
+  - App.jsx: rilevare viaggio condiviso nell'URL al caricamento
+  - Itinerary.jsx: modalità read-only per viaggi condivisi
+
+SOTTO-TASK
+  3.3.1  Installare lz-string
+  3.3.2  Creare share.js con encode/decode/isShared
+  3.3.3  Creare ShareModal.jsx con generazione link
+  3.3.4  Aggiungere pulsante "Condividi" in Itinerary.jsx
+  3.3.5  Rilevare viaggio condiviso al caricamento (App.jsx)
+  3.3.6  Aggiungere modalità read-only per viaggi condivisi
+  3.3.7  (OPZIONALE) Aggiungere QR code
+  3.3.8  Test: link lungo (7+ giorni), link con caratteri speciali
+
+CRITERI DI ACCETTAZIONE
+  - L'utente può generare un link di condivisione
+  - Il link apre l'itinerario in modalità read-only
+  - Il link funziona anche offline (i dati sono nell'URL)
+  - Il link non è eccessivamente lungo (max ~2000 caratteri)
+  - L'utente può copiare il link con un click
+
+
+================================================================================
+6. FASE 4 — DIFFERENZIAZIONE AI
+================================================================================
+
+Obiettivo: spingere il vantaggio competitivo dell'IA oltre la semplice
+generazione. Feature che TREK non ha e non può avere senza IA.
+
+------------------------------------------------------------------------
+TASK 4.1: OTTIMIZZAZIONE PERCORSO AI
+------------------------------------------------------------------------
+Priorità:     ALTA
+Complessità:  Media-Alta
+Tempo stimato: 8-12 ore
+Ispirazione:  TREK — Route optimization (ma manuale)
+
+DESCRIZIONE
+  Usare l'IA per ottimizzare l'ordine delle attività minimizzando
+  gli spostamenti. L'utente può chiedere "Ottimizza percorso" e
+  l'IA riordina le attività in base alla vicinanza geografica.
+
+COMPONENTI DA CREARE
+  src/utils/routeOptimize.js
+    - optimizeRoute(activities, apiKey) → attività riordinate
+    - Prompt specifico per ottimizzazione percorso
+    - Considerare: distanza, orari di apertura, tempo di visita
+    - Fallback: ordinamento geometrico (nearest-neighbor) senza IA
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: aggiungere pulsante "Ottimizza percorso"
+  - Mappa: animazione del riordino (marker si spostano)
+
+SOTTO-TASK
+  4.1.1  Creare routeOptimize.js con prompt di ottimizzazione
+  4.1.2  Implementare nearest-neighbor come fallback senza IA
+  4.1.3  Aggiungere pulsante "Ottimizza percorso" nella UI
+  4.1.4  Animazione del riordino sulla mappa
+  4.1.5  Calcolare e mostrare tempo/scala di spostamento risparmiata
+  4.1.6  Permettere undo dell'ottimizzazione
+
+CRITERI DI ACCETTAZIONE
+  - L'utente può cliccare "Ottimizza percorso"
+  - Le attività vengono riordinate per minimizzare spostamenti
+  - La mappa si aggiorna con la nuova polyline
+  - Viene mostrata la distanza/stima risparmiata
+  - L'utente può annullare l'ottimizzazione
+  - Funziona anche senza IA (fallback geometrico)
+
+------------------------------------------------------------------------
+TASK 4.2: RIGENERAZIONE SELETTIVA
+------------------------------------------------------------------------
+Priorità:     ALTA
+Complessità:  Media
+Tempo stimato: 8-10 ore
+
+DESCRIZIONE
+  Permettere all'utente di chiedere all'IA di rigenerare solo una
+  parte dell'itinerario: un singolo giorno, una singola attività,
+  o "solo i ristoranti". Senza dover rigenerare tutto da capo.
+
+COMPONENTI DA CREARE
+  src/utils/ai-partial.js
+    - regenerateDay(day, context, preferences) → nuovo giorno
+    - regenerateActivity(activity, context) → nuova attività
+    - regenerateMeals(day) → nuovi ristoranti per quel giorno
+    - buildContextPrompt(itinerary, target) → prompt con contesto
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: aggiungere "Rigenera" per giorno e per attività
+  - Itinerary.jsx: loading state parziale (solo la sezione interessata)
+  - ai.js: esportare le funzioni di rigenerazione
+
+SOTTO-TASK
+  4.2.1  Creare ai-partial.js con prompt di rigenerazione
+  4.2.2  Implementare rigenerazione singolo giorno
+  4.2.3  Implementare rigenerazione singola attività
+  4.2.4  Implementare rigenerazione soli ristoranti
+  4.2.5  Aggiungere pulsanti "Rigenera" nella UI
+  4.2.6  Loading state parziale (skeleton solo sulla sezione)
+  4.2.7  Animazione di transizione vecchio → nuovo contenuto
+  4.2.8  Undo: permettere di tornare alla versione precedente
+
+CRITERI DI ACCETTAZIONE
+  - L'utente può rigenerare un singolo giorno
+  - L'utente può rigenerare una singola attività
+  - L'utente può chiedere "solo ristoranti diversi"
+  - Solo la sezione interessata mostra il caricamento
+  - L'utente può annullare e tornare alla versione precedente
+  - Il contesto dell'itinerario completo viene passato all'IA
+
+------------------------------------------------------------------------
+TASK 4.3: CHAT ASSISTENTE DI VIAGGIO
+------------------------------------------------------------------------
+Priorità:     BASSA (nice-to-have)
+Complessità:  Alta
+Tempo stimato: 12-16 ore
+
+DESCRIZIONE
+  Un mini chatbot contestualizzato sull'itinerario corrente.
+  L'utente può chiedere "Cosa fare se piove a Roma il giorno 3?"
+  o "Trova un ristorante vegano vicino al Colosseo".
+
+COMPONENTI DA CREARE
+  src/components/ChatAssistant.jsx
+    - Interfaccia chat con messaggi
+    - Input con suggerimenti rapidi
+    - Contesto automatico: l'intero itinerario viene passato come
+      contesto di sistema
+    - Risposte con link ad attività nell'itinerario
+    - Floating button per aprire la chat
+
+  src/utils/chat.js
+    - sendMessage(message, itineraryContext) → risposta
+    - buildChatContext(itinerary) → system prompt contestualizzato
+    - Storico messaggi per sessione
+
+SOTTO-TASK
+  4.3.1  Creare chat.js con logica messaggi + contesto
+  4.3.2  Creare ChatAssistant.jsx con UI chat
+  4.3.3  Aggiungere suggerimenti rapidi ("Piove?", "Vegano?", "Altro?")
+  4.3.4  Floating button per aprire chat
+  4.3.5  Persistere storico chat per viaggio
+  4.3.6  Limitare token per non esaurire il context window
+
+CRITERI DI ACCETTAZIONE
+  - L'utente può aprire una chat contestualizzata
+  - L'IA risponde con conoscenza dell'itinerario
+  - I suggerimenti rapidi coprono i casi d'uso comuni
+  - Lo storico viene mantenuto per la sessione
+
+
+================================================================================
+7. FASE 5 — QUALITÀ PROFESSIONALE
+================================================================================
+
+Obiettivo: rifiniture che portano l'app da "progetto" a "prodotto".
+
+------------------------------------------------------------------------
+TASK 5.1: MIGLIORAMENTO PDF EXPORT
+------------------------------------------------------------------------
+Priorità:     MEDIA
+Complessità:  Media
+Tempo stimato: 6-8 ore
+Ispirazione:  TREK — PDF con cover page, immagini, branding
+
+DESCRIZIONE
+  Migliorare drasticamente il PDF export con cover page professionale,
+  immagini (placeholder se necessario), meteo, e branding coerente.
+
+MODIFICHE A FILE ESISTENTI
+  - pdf.js: riscrittura completa
+    - Cover page con titolo, date, destinazione, branding RoadTrip
+    - Sommario con lista giorni
+    - Sezione meteo per giorno
+    - Attività con icone, orari, prezzi, mappa statica
+    - Packing list con checkbox stampabili
+    - Sezione budget con confronto stimato/reale
+    - Footer con data generazione e versione app
+    - Supporto stampa diretta (window.print) come alternativa
+
+SOTTO-TASK
+  5.1.1  Cover page con branding
+  5.1.2  Sommario giorni
+  5.1.3  Integrare dati meteo nel PDF
+  5.1.4  Integrare spese reali nel PDF
+  5.1.5  Packing list con checkbox stampabili
+  5.1.6  Footer con data e versione
+  5.1.7  Aggiungere opzione "Stampa" come alternativa al PDF
+  5.1.8  Ottimizzare per A4 senza tagli brutti
+
+CRITERI DI ACCETTAZIONE
+  - Il PDF ha una cover page professionale
+  - Ogni giorno ha il meteo
+  - Le spese reali sono incluse (se presenti)
+  - La packing list ha checkbox stampabili
+  - Il PDF si adatta ad A4 senza tagliare contenuto
+
+------------------------------------------------------------------------
+TASK 5.2: STATE MANAGEMENT CON ZUSTAND
+------------------------------------------------------------------------
+Priorità:     ALTA (fondamentale per scalabilità)
+Complessità:  Bassa-Media
+Tempo stimato: 6-8 ore
+
+DESCRIZIONE
+  Sostituire il prop drilling con Zustand. App.jsx è già un hub
+  con troppi useState e useCallback. Con le nuove feature diventa
+  ingestibile.
+
+NUOVE DIPENDENZE
+  - zustand
+
+COMPONENTI DA CREARE
+  src/store/tripStore.js
+    - Stato: trips, currentTrip, currentItinerary
+    - Azioni: addTrip, updateTrip, deleteTrip, loadTrip, clearCurrent
+
+  src/store/uiStore.js
+    - Stato: view, activeDay, selectedActivity, showApiSetup, theme
+    - Azioni: setView, setActiveDay, selectActivity, toggleApiSetup
+
+  src/store/budgetStore.js
+    - Stato: expenses per viaggio
+    - Azioni: addExpense, updateExpense, deleteExpense
+
+  src/store/packingStore.js
+    - Stato: checkedItems per viaggio
+    - Azioni: toggleItem, addCustomItem, removeItem
+
+MODIFICHE A FILE ESISTENTI
+  - App.jsx: rimuovere tutti gli useState, usare gli store
+  - Itinerary.jsx: usare store direttamente
+  - TripForm.jsx: usare store per view management
+  - SavedTrips.jsx: usare tripStore
+  - Ogni componente figlio: rimuovere props non necessari
+
+SOTTO-TASK
+  5.2.1  Installare zustand
+  5.2.2  Creare tripStore.js
+  5.2.3  Creare uiStore.js
+  5.2.4  Rifattorizzare App.jsx per usare gli store
+  5.2.5  Rifattorizzare Itinerary.jsx
+  5.2.6  Rifattorizzare SavedTrips.jsx
+  5.2.7  Creare budgetStore.js (preparare per Fase 2)
+  5.2.8  Creare packingStore.js (preparare per Fase 2)
+  5.2.9  Testare che tutto funziona come prima
+
+CRITERI DI ACCETTAZIONE
+  - Nessun prop drilling per stato globale
+  - App.jsx non ha più di 30-40 righe di logica
+  - Ogni store è indipendente e testabile
+  - La persistenza in localStorage è gestita dagli store
+  - Tutto funziona esattamente come prima della rifattorizzazione
+
+------------------------------------------------------------------------
+TASK 5.3: OFFLINE MIGLIORATO
+------------------------------------------------------------------------
+Priorità:     MEDIA
+Complessità:  Media
+Tempo stimato: 6-8 ore
+Ispirazione:  TREK — Offline con tile mappe + dati API
+
+DESCRIZIONE
+  Migliorare il supporto offline per permettere di usare l'app
+  anche senza connessione per visualizzare viaggi salvati.
+
+MODIFICHE A FILE ESISTENTI
+  - vite.config.js: aggiungere runtime caching per:
+    - Tile OpenStreetMap (CacheFirst, 30 giorni)
+    - api.open-meteo.com (StaleWhileRevalidate, 3 ore)
+    - nominatim.openstreetmap.org (CacheFirst, 24 ore)
+    - Font Google (CacheFirst, 1 anno — già presente)
+  - App.jsx: aggiungere indicatore "Offline" nell'header
+  - src/utils/offline.js
+    - isOnline() → boolean
+    - onConnectionChange(callback) → observer
+    - queueAction(action) → coda azioni offline
+    - flushQueue() → eseguire azioni quando torna online
+
+SOTTO-TASK
+  5.3.1  Aggiungere caching tile mappe nel Service Worker
+  5.3.2  Aggiungere caching API meteo
+  5.3.3  Aggiungere caching Nominatim
+  5.3.4  Creare offline.js con detection + queue
+  5.3.5  Aggiungere indicatore "Offline" nell'UI
+  5.3.6  Testare su Chrome DevTools (Offline mode)
+  5.3.7  Assicurare che viaggi salvati siano accessibili offline
+
+CRITERI DI ACCETTAZIONE
+  - I viaggi salvati sono accessibili offline
+  - I tile delle mappe già visitati sono cachati
+  - C'è un indicatore visivo quando si è offline
+  - L'app non crasha se si va offline durante l'uso
+
+------------------------------------------------------------------------
+TASK 5.4: EXPORT ALTERNATIVI
+------------------------------------------------------------------------
+Priorità:     BASSA
+Complessità:  Bassa
+Tempo stimato: 4-6 ore
+
+DESCRIZIONE
+  Aggiungere export in formati alternativi oltre al PDF.
+
+FORMATI
+  - JSON: export/import completo del viaggio (per backup)
+  - iCal: generare eventi calendario per ogni attività
+  - Markdown: versione testo formattato
+  - Link condivisibile (già coperto da Task 3.3)
+
+COMPONENTI DA CREARE
+  src/utils/export.js
+    - exportJSON(trip) → file .json download
+    - importJSON(file) → trip object
+    - exportICal(trip) → file .ics download
+    - exportMarkdown(trip) → file .md download
+
+MODIFICHE A FILE ESISTENTI
+  - Itinerary.jsx: aggiungere menu export con opzioni multiple
+
+SOTTO-TASK
+  5.4.1  Creare exportJSON + importJSON
+  5.4.2  Creare exportICal
+  5.4.3  Creare exportMarkdown
+  5.4.4  Aggiungere menu export nella UI
+  5.4.5  Aggiungere import nella home (drag & drop file)
+
+CRITERI DI ACCETTAZIONE
+  - L'utente può esportare in JSON, iCal, Markdown
+  - L'utente può importare da JSON
+  - L'iCal crea eventi calendario con orari e location
+  - Il Markdown è leggibile e formattato
+
+------------------------------------------------------------------------
+TASK 5.5: INTERNAZIONALIZZAZIONE (i18n)
+------------------------------------------------------------------------
+Priorità:     BASSA
+Complessità:  Media-Alta
+Tempo stimato: 10-14 ore
+Ispirazione:  TREK — 8 lingue con supporto RTL
+
+DESCRIZIONE
+  Aggiungere supporto multilingua minimo: Italiano + Inglese.
+  Preparare l'infrastruttura per aggiungere altre lingue in futuro.
+
+NUOVE DIPENDENZE
+  - Nessuna nuova dipendenza: implementare sistema minimale custom
+    (non vale la pena usare react-intl o i18next per 2 lingue)
+
+COMPONENTI DA CREARE
+  src/i18n/it.js — traduzioni italiane (estratte dall'attuale codice)
+  src/i18n/en.js — traduzioni inglesi
+  src/i18n/index.js — logica cambio lingua + export hook useTranslation()
+
+MODIFICHE A FILE ESISTENTI
+  - Ogni componente: sostituire stringhe hardcoded con t('key')
+  - storage.js: salvare preferenza lingua
+  - ai.js: modificare prompt in base alla lingua selezionata
+
+SOTTO-TASK
+  5.5.1  Estrarre tutte le stringhe italiane in it.js
+  5.5.2  Creare traduzioni inglesi en.js
+  5.5.3  Creare index.js con hook useTranslation
+  5.5.4  Aggiungere selettore lingua nelle impostazioni
+  5.5.5  Aggiornare tutti i componenti per usare t()
+  5.5.6  Modificare prompt AI in base alla lingua
+  5.5.7  Aggiornare HTML lang attribute dinamicamente
+
+CRITERI DI ACCETTAZIONE
+  - L'app funziona in italiano e inglese
+  - L'utente può cambiare lingua dalle impostazioni
+  - I prompt AI generano contenuto nella lingua selezionata
+  - La lingua viene salvata e ripristinata
+
+
+================================================================================
+8. DEPENDENCIES E TIMELINE
+================================================================================
+
+DIPENDENZE TRA TASK (grafo)
+  1.1 Mappa Leaflet → nessuna dipendenza (può iniziare subito)
+  1.2 Meteo → nessuna dipendenza (può iniziare subito)
+  2.1 Drag & Drop → consigliato dopo 5.2 (Zustand)
+  2.2 Packing List → consigliato dopo 5.2 (Zustand)
+  2.3 Budget Tracker → consigliato dopo 5.2 (Zustand)
+  2.4 Editing Attività → consigliato dopo 5.2 (Zustand)
+  3.1 Dark Mode → nessuna dipendenza
+  3.2 Ricerca Luoghi → nessuna dipendenza
+  3.3 Condivisione → dopo 2.4 (editing deve essere stabile)
+  4.1 Ottimizzazione Percorso → dopo 1.1 (mappa) + 2.1 (drag&drop)
+  4.2 Rigenerazione Selettiva → nessuna dipendenza forte
+  4.3 Chat Assistente → dopo 4.2 (rigenerazione)
+  5.1 PDF Migliorato → dopo 2.2 (packing) + 2.3 (budget) + 1.2 (meteo)
+  5.2 Zustand → NESSUNA DIPENDENZA — FARE PRIMA POSSIBILE
+  5.3 Offline → dopo 1.1 (mappa) + 1.2 (meteo)
+  5.4 Export Alternativi → dopo 2.4 (editing stabile)
+  5.5 i18n → può fare in qualsiasi momento ma è distruttivo
+
+NUOVE DIPENDENZE NPM (in ordine di necessità)
+  FASE 1: leaflet, react-leaflet, react-leaflet-cluster
+  FASE 2: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, chart.js, react-chartjs-2
+  FASE 3: lz-string (condivisione)
+  FASE 5: zustand (fare PRIMA possibile)
+
+ORDINE DI IMPLEMENTAZIONE CONSIGLIATO
+  (massimizza impatto, minimizza conflitti)
+
+  STEP 1 (Giorno 1):     5.2 Zustand — fondazione per tutto
+  STEP 2 (Giorno 1-2):   1.1 Mappa Leaflet — impatto visivo enorme
+  STEP 3 (Giorno 2-3):   1.2 Meteo Open-Meteo — impatto visivo
+  STEP 4 (Giorno 3-4):   3.1 Dark Mode — impatto percepito
+  STEP 5 (Giorno 4-6):   2.1 Drag & Drop — interattività
+  STEP 6 (Giorno 6-7):   2.4 Editing Attività — interattività
+  STEP 7 (Giorno 7-8):   2.2 Packing List interattiva
+  STEP 8 (Giorno 8-10):  2.3 Budget Tracker
+  STEP 9 (Giorno 10-11): 3.2 Ricerca Luoghi Nominatim
+  STEP 10 (Giorno 11-12): 4.2 Rigenerazione Selettiva — differenziale AI
+  STEP 11 (Giorno 12-14): 4.1 Ottimizzazione Percorso AI
+  STEP 12 (Giorno 14-15): 5.1 PDF Migliorato
+  STEP 13 (Giorno 15-16): 3.3 Condivisione viaggio
+  STEP 14 (Giorno 16-17): 5.3 Offline migliorato
+  STEP 15 (Giorno 17-18): 5.4 Export alternativi
+  STEP 16 (Giorno 18-20): 5.5 i18n (Italiano + Inglese)
+  STEP 17 (Giorno 20-24): 4.3 Chat Assistente (nice-to-have)
+
+TEMPO TOTALE STIMATO: 20-24 giorni di lavoro (una persona)
+                       Con 2 persone: ~14-16 giorni (parallelismo su fase 1+3)
+
+PARALLELISMO POSSIBILE
+  Questi task possono girare in parallelo senza conflitti:
+  - 1.1 Mappa + 1.2 Meteo + 3.1 Dark Mode (tutti indipendenti)
+  - 2.2 Packing + 2.3 Budget + 3.2 Ricerca (dopo Zustand)
+  - 5.1 PDF + 5.3 Offline + 5.4 Export (fase rifinitura)
+
+
+================================================================================
+9. RISCHI E MITIGAZIONI
+================================================================================
+
+RISCHIO 1: BUNDLE SIZE
+  Problema: Leaflet, Chart.js, @dnd-kit aumentano il bundle
+  Mitigazione: lazy loading di tutti i moduli pesanti
+    const MapView = React.lazy(() => import('./components/MapView'))
+    const BudgetTracker = React.lazy(() => import('./components/BudgetTracker'))
+  Obiettivo: bundle iniziale < 200KB gzip
+
+RISCHIO 2: RATE LIMITING NOMINATIM
+  Problema: Nominatim ha rate limit 1 req/s per policy
+  Mitigazione: debounce 300ms + cache aggressiva (24h) + fallback input libero
+
+RISCHIO 3: LIMITI URL CONDIVISIONE
+  Problema: Itinerari lunghi generano URL troppo grandi (>2000 char)
+  Mitigazione: compressione lz-string + warning se il viaggio è troppo lungo
+    per essere condiviso via URL + alternativa export JSON
+
+RISCHIO 4: COSTI API AI PER RIGENERAZIONE
+  Problema: Rigenerazione selettiva = più chiamate API = più costi
+  Mitigazione: mostrare stimazione token prima di rigenerare
+    + opzione "rigenera tutto" come alternativa più economica
+
+RISCHIO 5: localStorage QUOTA
+  Problema: Con spese, packing state, meteo cache, ecc. localStorage si riempie
+  Mitigazione: IndexedDB per dati voluminosi (spese, cache meteo)
+    + cleanup automatico cache scaduta + warning se vicino al limite
+
+RISCHIO 6: COMPATIBILITÀ LEAFLET SSR/SSG
+  Problema: Leaflet non funziona in SSR (ma la nostra app è SPA pura, ok)
+  Mitigazione: nessuna — siamo SPA pura, nessun rischio
+
+RISCHIO 7: i18n È RUTTURA E DISTURBO
+  Problema: Sostituire tutte le stringhe è lungo e incline a errori
+  Mitigazione: fare per ultimo + automatizzare estrazione con script
+    + coprire solo it/en (non 8 lingue come TREK)
+
+
+================================================================================
+10. METRICHE DI SUCCESSO
+================================================================================
+
+METRICHE TECNICHE
+  - Lighthouse Performance: > 90 (mobile e desktop)
+  - Lighthouse PWA: 100
+  - Bundle iniziale: < 200KB gzip
+  - Time to Interactive: < 3s su 4G
+  - Zero crash per errori API (tutto ha fallback)
+
+METRICHE DI EXPERIENCE
+  - L'utente può vedere il suo itinerario su una mappa interattiva
+  - L'utente può modificare l'ordine delle attività
+  - L'utente può editare singole attività
+  - L'utente può rigenerare parti specifiche dell'itinerario
+  - L'utente può tracciare spese reali vs budget stimato
+  - L'utente può spuntare item del packing list
+  - L'utente può vedere il meteo per ogni giorno
+  - L'utente può usare l'app in dark mode
+  - L'utente può condividere un itinerario con un link
+  - L'utente può esportare in PDF professionale, iCal, JSON
+  - L'utente può usare l'app offline per viaggi già caricati
+
+OBIETTIVO FINALE
+  Un'app di pianificazione viaggi AI-first che combina:
+  - La potenza generativa dell'IA (che TREK non ha)
+  - La ricchezza visiva e interattiva di TREK (mappe, budget, packing)
+  - La semplicità architetturale client-side (che TREK non ha)
+  
+  Questo la rende UNICA nel panorama delle travel app open source.
+
+
+================================================================================
+  FINE DEL PIANO
+================================================================================
+
+Note finali:
+- Questo piano è ispirato a TREK ma NON copia codice da TREK (licenza AGPL-3.0)
+- Ogni feature è ripensata per un'architettura client-side AI-first
+- L'ordine di implementazione massimizza impatto visivo precoce
+- Zustand (5.2) è la fondazione: farlo PRIMA di tutto il resto
+- Il principio "progressive enhancement" garantisce che ogni feature
+  ha fallback e l'app non crasha mai
+================================================================================

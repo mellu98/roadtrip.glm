@@ -130,6 +130,10 @@ function buildUserPrompt(formData) {
     parts.push(`Additional notes: ${formData.additionalNotes}`)
   }
 
+  if (formData.destinationLat && formData.destinationLng) {
+    parts.push(`Coordinates: ${formData.destinationLat}, ${formData.destinationLng}`)
+  }
+
   parts.push('\nGenerate a complete, detailed day-by-day itinerary as JSON.')
 
   return parts.join('\n')

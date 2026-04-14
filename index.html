@@ -15,6 +15,16 @@
     <title>RoadTrip Planner</title>
   </head>
   <body>
+    <script>
+      (function() {
+        var theme = localStorage.getItem('roadtrip_theme') || 'system';
+        var resolved = theme;
+        if (theme === 'system') {
+          resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

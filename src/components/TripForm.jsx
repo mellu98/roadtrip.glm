@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PlaceSearch from './PlaceSearch'
 
 const TRAVEL_STYLES = [
   { id: 'adventure', label: 'Avventura', icon: '🏔️' },
@@ -48,6 +49,8 @@ export default function TripForm({ onGenerate, onBack }) {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({
     destination: '',
+    destinationLat: null,
+    destinationLng: null,
     startDate: '',
     endDate: '',
     duration: 3,
@@ -129,13 +132,17 @@ export default function TripForm({ onGenerate, onBack }) {
             </div>
             <div className="form-group">
               <label>Destinazione</label>
-              <input
-                type="text"
+              <PlaceSearch
                 value={form.destination}
-                onChange={e => update('destination', e.target.value)}
+                onChange={(val) => update('destination', val)}
+                onSelect={(place) => {
+                  update('destination', place.name)
+                  if (place.lat && place.lng) {
+                    update('destinationLat', place.lat)
+                    update('destinationLng', place.lng)
+                  }
+                }}
                 placeholder="Es: Roma, Tokyo, Patagonia..."
-                className="input-large"
-                autoFocus
               />
             </div>
             <div className="form-row">

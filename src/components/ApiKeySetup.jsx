@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useApiStore } from '../store/apiStore'
+import { useUiStore } from '../store/uiStore'
 
 const PROVIDERS = [
   {
@@ -23,7 +25,10 @@ const PROVIDERS = [
   }
 ]
 
-export default function ApiKeySetup({ onSave, currentConfig }) {
+export default function ApiKeySetup() {
+  const { saveConfig } = useApiStore()
+  const { toggleApiSetup } = useUiStore()
+  const currentConfig = useApiStore(s => s.config)
   const [provider, setProvider] = useState('OpenAI')
   const [url, setUrl] = useState(currentConfig?.url || PROVIDERS[0].url)
   const [key, setKey] = useState(currentConfig?.key || '')
@@ -73,7 +78,8 @@ export default function ApiKeySetup({ onSave, currentConfig }) {
   const handleSave = () => {
     const finalModel = customModel || model
     if (!url || !key || !finalModel) return
-    onSave({ url, key, model: finalModel })
+    saveConfig({ url, key, model: finalModel })
+    toggleApiSetup(false)
   }
 
   return (

@@ -1,3 +1,9 @@
+import { useRef } from 'react'
+import { useTripStore } from '../store/tripStore'
+import { useUiStore, VIEWS } from '../store/uiStore'
+import { importJSON } from '../utils/export'
+import { useTranslation } from '../i18n'
+
 const EMOJIS = ['🇮🇹', '🇪🇸', '🇫🇷', '🇯🇵', '🇬🇧', '🇩🇪', '🇺🇸', '🇧🇷', '🇦🇷', '🇲🇽', '🇬🇷', '🇵🇹', '🇹🇭', '🇲🇦', '🇭🇷', '🌍']
 
 function getTripEmoji(name) {
@@ -20,7 +26,32 @@ function daysBetween(start, end) {
   return diff > 0 ? diff : null
 }
 
-export default function SavedTrips({ trips, onLoad, onDelete, onNewTrip }) {
+export default function SavedTrips({ onNewTrip }) {
+  const { trips, deleteTrip, loadTrip, saveTrip } = useTripStore()
+  const { setView } = useUiStore()
+  const fileInputRef = useRef(null)
+  const { lang, setLang } = useTranslation()
+
+  const handleLoadTrip = (trip) => {
+    loadTrip(trip)
+    setView(VIEWS.ITINERARY)
+  }
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const trip = await importJSON(file)
+      trip.id = useTripStore.getState().generateId()
+      trip.createdAt = new Date().toISOString()
+      saveTrip(trip)
+    } catch (err) {
+      alert('Errore nell\'importazione: ' + err.message)
+    }
+    // Reset file input
+    e.target.value = ''
+  }
+
   return (
     <div className="saved-trips">
       <div className="home-header">
@@ -31,6 +62,9 @@ export default function SavedTrips({ trips, onLoad, onDelete, onNewTrip }) {
             <p className="home-tagline">Il tuo viaggio perfetto, pianificato dall'IA</p>
           </div>
         </div>
+        <button className="lang-toggle" onClick={() => setLang(lang === 'it' ? 'en' : 'it')}>
+          {lang === 'it' ? '🇬🇧 EN' : '🇮🇹 IT'}
+        </button>
       </div>
 
       <button className="btn-new-trip" onClick={onNewTrip}>
@@ -57,7 +91,7 @@ export default function SavedTrips({ trips, onLoad, onDelete, onNewTrip }) {
                   className="btn-icon-sm btn-danger"
                   onClick={() => {
                     if (window.confirm(`Eliminare "${trip.title || trip.destination}"?`)) {
-                      onDelete(trip.id)
+                      deleteTrip(trip.id)
                     }
                   }}
                   title="Elimina"
@@ -95,7 +129,7 @@ export default function SavedTrips({ trips, onLoad, onDelete, onNewTrip }) {
                 )}
               </div>
               <div className="trip-card-footer">
-                <button className="btn-primary btn-sm" onClick={() => onLoad(trip)}>
+                <button className="btn-primary btn-sm" onClick={() => handleLoadTrip(trip)}>
                   <i className="fas fa-eye"></i> Apri
                 </button>
               </div>
@@ -103,6 +137,17 @@ export default function SavedTrips({ trips, onLoad, onDelete, onNewTrip }) {
           ))}
         </div>
       )}
+
+      <input
+        type="file"
+        accept=".json"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleImport}
+      />
+      <button className="import-btn" onClick={() => fileInputRef.current?.click()}>
+        <i className="fas fa-file-import"></i> Importa viaggio
+      </button>
     </div>
   )
 }
