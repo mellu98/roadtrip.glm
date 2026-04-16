@@ -1,16 +1,16 @@
-// Categorizzazione automatica degli item della packing list
+// Automatic categorization of packing list items
 const CATEGORY_RULES = [
-  { id: 'clothing', label: 'Abbigliamento', icon: '👕', keywords: ['maglia', 'camicia', 'pantaloni', 'vestito', 'giacca', 'cappotto', 'scarpe', 'calzini', 'biancheria', 'intimo', 'costume', 'bikini', 'cappello', 'guanti', 'sciarpa', 'felpa', 'jeans', 'short', 'sneaker', 'sandalo', 'shirt', 'pant', 'dress', 'jacket', 'coat', 'shoe', 'sock', 'underwear', 'swimsuit', 'hat', 'glove', 'scarf', 'sweater', 'shorts'] },
-  { id: 'electronics', label: 'Elettronica', icon: '📱', keywords: ['telefono', 'caricabatterie', 'cavo', 'fotocamera', 'macchina fotografica', 'laptop', 'computer', 'tablet', 'cuffie', 'auricolari', 'powerbank', 'batteria', 'adattatore', 'presa', 'phone', 'charger', 'cable', 'camera', 'headphone', 'earbuds', 'battery', 'adapter', 'plug'] },
-  { id: 'documents', label: 'Documenti', icon: '📋', keywords: ['passaporto', 'documento', 'patente', 'carta d\'identità', 'biglietto', 'assicurazione', 'visto', 'carta', 'pass', 'passport', 'license', 'id', 'ticket', 'insurance', 'visa'] },
-  { id: 'hygiene', label: 'Igiene', icon: '🧴', keywords: ['sapone', 'shampoo', 'bagnoschiuma', 'dentifricio', 'spazzolino', 'deodorante', 'crema', 'sole', 'protettiva', 'rasoio', 'asciugamano', 'soap', 'shampoo', 'toothpaste', 'toothbrush', 'deodorant', 'cream', 'sunscreen', 'towel', 'lotion'] },
-  { id: 'health', label: 'Salute', icon: '💊', keywords: ['medicinali', 'farmaco', 'pillola', 'cerotto', 'kit pronto soccorso', 'medicine', 'drug', 'pill', 'bandage', 'first aid', 'antidolorifico', 'antibiotico'] },
-  { id: 'accessories', label: 'Accessori', icon: '🎒', keywords: ['borsetta', 'zaino', 'valigia', 'occhiali', 'ombrello', 'borsa', 'portafoglio', 'chiavi', 'bag', 'backpack', 'suitcase', 'glasses', 'umbrella', 'wallet', 'key', 'luggage'] },
-  { id: 'other', label: 'Altro', icon: '📦', keywords: [] },
+  { id: 'clothing', label: 'Clothing', icon: '👕', keywords: ['maglia', 'camicia', 'pantaloni', 'vestito', 'giacca', 'cappotto', 'scarpe', 'calzini', 'biancheria', 'intimo', 'costume', 'bikini', 'cappello', 'guanti', 'sciarpa', 'felpa', 'jeans', 'short', 'sneaker', 'sandalo', 'shirt', 'pant', 'dress', 'jacket', 'coat', 'shoe', 'sock', 'underwear', 'swimsuit', 'hat', 'glove', 'scarf', 'sweater', 'shorts'] },
+  { id: 'electronics', label: 'Electronics', icon: '📱', keywords: ['telefono', 'caricabatterie', 'cavo', 'fotocamera', 'macchina fotografica', 'laptop', 'computer', 'tablet', 'cuffie', 'auricolari', 'powerbank', 'batteria', 'adattatore', 'presa', 'phone', 'charger', 'cable', 'camera', 'headphone', 'earbuds', 'battery', 'adapter', 'plug'] },
+  { id: 'documents', label: 'Documents', icon: '📋', keywords: ['passaporto', 'documento', 'patente', 'carta d\'identità', 'biglietto', 'assicurazione', 'visto', 'carta', 'pass', 'passport', 'license', 'id', 'ticket', 'insurance', 'visa'] },
+  { id: 'hygiene', label: 'Hygiene', icon: '🧴', keywords: ['sapone', 'shampoo', 'bagnoschiuma', 'dentifricio', 'spazzolino', 'deodorante', 'crema', 'sole', 'protettiva', 'rasoio', 'asciugamano', 'soap', 'shampoo', 'toothpaste', 'toothbrush', 'deodorant', 'cream', 'sunscreen', 'towel', 'lotion'] },
+  { id: 'health', label: 'Health', icon: '💊', keywords: ['medicinali', 'farmaco', 'pillola', 'cerotto', 'kit pronto soccorso', 'medicine', 'drug', 'pill', 'bandage', 'first aid', 'antidolorifico', 'antibiotico'] },
+  { id: 'accessories', label: 'Accessories', icon: '🎒', keywords: ['borsetta', 'zaino', 'valigia', 'occhiali', 'ombrello', 'borsa', 'portafoglio', 'chiavi', 'bag', 'backpack', 'suitcase', 'glasses', 'umbrella', 'wallet', 'key', 'luggage'] },
+  { id: 'other', label: 'Other', icon: '📦', keywords: [] },
 ]
 
 /**
- * Categorizza un item della packing list per keyword matching
+ * Categorize a packing list item by keyword matching
  */
 export function categorizeItem(item) {
   const lower = item.toLowerCase()
@@ -23,63 +23,63 @@ export function categorizeItem(item) {
 }
 
 /**
- * Restituisce tutte le categorie
+ * Returns all categories
  */
 export function getCategories() {
   return CATEGORY_RULES
 }
 
 /**
- * Template di packing predefiniti per tipo di viaggio
+ * Predefined packing templates by trip type
  */
 const PACKING_TEMPLATES = {
   beach: {
-    name: '🏖️ Spiaggia',
+    name: '🏖️ Beach',
     items: [
-      'Costume da bagno', 'Crema solare SPF 50', 'Occhiali da sole',
-      'Cappello', 'Asciugamano da spiaggia', 'Sandali',
-      'Borsa da spiaggia', 'Lettore di libri', 'Borraccia',
-      'Magliette leggere', 'Shorts', 'Ciabatte',
+      'Swimsuit', 'Sunscreen SPF 50', 'Sunglasses',
+      'Hat', 'Beach towel', 'Sandals',
+      'Beach bag', 'E-reader', 'Water bottle',
+      'Light t-shirts', 'Shorts', 'Flip-flops',
     ]
   },
   mountain: {
-    name: '🏔️ Montagna',
+    name: '🏔️ Mountain',
     items: [
-      'Scarpe da trekking', 'Giacca impermeabile', 'Pantaloni lunghi',
-      'Felpa termica', 'Calzini tecnici', 'Guanti',
-      'Cappello di lana', 'Borraccia', 'Kit primo soccorso',
-      'Crema solare', 'Occhiali da sole', 'Zaino',
+      'Hiking boots', 'Rain jacket', 'Long pants',
+      'Thermal sweater', 'Technical socks', 'Gloves',
+      'Wool hat', 'Water bottle', 'First aid kit',
+      'Sunscreen', 'Sunglasses', 'Backpack',
     ]
   },
   city: {
-    name: '🏛️ Città',
+    name: '🏛️ City',
     items: [
-      'Scarpe comode', 'Mappa o guida', 'Powerbank',
-      'Caricabatterie', 'Occhiali da sole', 'Borsa giornaliera',
-      'Portafoglio', 'Documenti', 'Cuffie',
-      'Bottiglia d\'acqua', 'Ombrello pieghevole', 'Felpa leggera',
+      'Comfortable shoes', 'Map or guidebook', 'Power bank',
+      'Charger', 'Sunglasses', 'Day bag',
+      'Wallet', 'Documents', 'Headphones',
+      'Bottiglia d\'acqua', 'Compact umbrella', 'Light sweater',
     ]
   },
   business: {
     name: '💼 Business',
     items: [
-      'Computer portatile', 'Caricabatterie', 'Adattatore presa',
-      'Documenti di viaggio', 'Biglietti', 'Carta d\'identità',
-      'Abbigliamento formale', 'Scarpe eleganti', 'Biglietti da visita',
-      'Fermacarte', 'Borsa lavoro', 'Cuffie',
+      'Laptop', 'Charger', 'Plug adapter',
+      'Travel documents', 'Tickets', 'ID card',
+      'Formal wear', 'Dress shoes', 'Business cards',
+      'Paperweight', 'Briefcase', 'Headphones',
     ]
   },
 }
 
 /**
- * Restituisce tutti i template disponibili
+ * Returns all available templates
  */
 export function getPackingTemplates() {
   return PACKING_TEMPLATES
 }
 
 /**
- * Applica un template, unendolo con gli item AI esistenti (no duplicati)
+ * Apply a template, merging with existing AI items (no duplicates)
  */
 export function mergeWithAIList(aiList, templateItems) {
   const existingLower = new Set(aiList.map(item => item.toLowerCase().trim()))

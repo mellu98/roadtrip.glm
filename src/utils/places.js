@@ -1,6 +1,6 @@
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org'
 const CACHE_KEY = 'roadtrip_places_cache'
-const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 ore
+const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
 
 function getCache() {
   try {
@@ -13,7 +13,7 @@ function setCacheEntry(key, data) {
   try {
     const cache = getCache()
     cache[key] = { data, timestamp: Date.now() }
-    // Limita la cache a 100 entry
+    // Limit cache to 100 entries
     const keys = Object.keys(cache)
     if (keys.length > 100) {
       const oldest = keys.sort((a, b) => cache[a].timestamp - cache[b].timestamp)[0]
@@ -32,7 +32,7 @@ function getCachedEntry(key) {
 }
 
 let lastRequestTime = 0
-const MIN_REQUEST_INTERVAL = 1100 // 1.1s per rispettare policy Nominatim (1 req/s)
+const MIN_REQUEST_INTERVAL = 1100 // 1.1s to respect Nominatim policy (1 req/s)
 
 async function rateLimitedFetch(url) {
   const now = Date.now()
@@ -43,15 +43,15 @@ async function rateLimitedFetch(url) {
   lastRequestTime = Date.now()
   
   const res = await fetch(url, {
-    headers: { 'Accept-Language': 'it' },
+    headers: { 'Accept-Language': 'en' },
   })
   return res
 }
 
 /**
- * Cerca luoghi tramite Nominatim (OpenStreetMap)
- * @param {string} query - Testo di ricerca
- * @returns {Promise<Array>} - Array di risultati
+ * Search places via Nominatim (OpenStreetMap)
+ * @param {string} query - Search text
+ * @returns {Promise<Array>} - Array of results
  */
 export async function searchPlaces(query) {
   if (!query || query.trim().length < 2) return []
@@ -91,8 +91,8 @@ export async function searchPlaces(query) {
 }
 
 /**
- * Geocodifica un luogo (da nome a coordinate)
- * @param {string} location - Nome del luogo
+ * Geocode a place (from name to coordinates)
+ * @param {string} location - Place name
  * @returns {Promise<{lat: number, lng: number} | null>}
  */
 export async function geocode(location) {
@@ -117,7 +117,7 @@ export async function geocode(location) {
 }
 
 /**
- * Reverse geocodifica (da coordinate a nome)
+ * Reverse geocode (from coordinates to name)
  * @param {number} lat
  * @param {number} lng
  * @returns {Promise<string|null>}

@@ -1,10 +1,10 @@
 export const BUDGET_CATEGORIES = [
-  { id: 'accommodation', label: 'Alloggio', icon: '🏨', color: '#6c5ce7' },
-  { id: 'food', label: 'Cibo', icon: '🍽️', color: '#e07a5f' },
-  { id: 'transport', label: 'Trasporti', icon: '🚗', color: '#636e72' },
-  { id: 'attractions', label: 'Attrazioni', icon: '🏛️', color: '#3d85c6' },
+  { id: 'accommodation', label: 'Accommodation', icon: '🏨', color: '#6c5ce7' },
+  { id: 'food', label: 'Food', icon: '🍽️', color: '#e07a5f' },
+  { id: 'transport', label: 'Transport', icon: '🚗', color: '#636e72' },
+  { id: 'attractions', label: 'Attractions', icon: '🏛️', color: '#3d85c6' },
   { id: 'shopping', label: 'Shopping', icon: '🛍️', color: '#f2cc8f' },
-  { id: 'other', label: 'Altro', icon: '📦', color: '#81b29a' },
+  { id: 'other', label: 'Other', icon: '📦', color: '#81b29a' },
 ]
 
 export function getCategoryById(id) {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Pie } from 'react-chartjs-2'
+import { Card, CardBody, Button, Input, Select, SelectItem } from '@heroui/react'
 import { useBudgetStore } from '../store/budgetStore'
 import { useTripStore } from '../store/tripStore'
 import { BUDGET_CATEGORIES, getCategoryById, expensesByCategory, totalExpenses, expensesForDay } from '../utils/budget'
@@ -52,7 +53,7 @@ export default function BudgetTracker({ currentDay, isShared }) {
       }
     })
     if (data.length === 0) {
-      labels.push('Nessuna spesa')
+      labels.push('No expenses')
       data.push(1)
       colors.push('#dfe6e9')
     }
@@ -62,7 +63,7 @@ export default function BudgetTracker({ currentDay, isShared }) {
         data,
         backgroundColor: colors,
         borderWidth: 2,
-        borderColor: 'var(--bg-secondary)',
+        borderColor: 'transparent',
       }],
     }
   }, [byCategory])
@@ -106,7 +107,6 @@ export default function BudgetTracker({ currentDay, isShared }) {
     deleteExpense(tripId, expenseId)
   }
 
-  // Estimated costs from AI itinerary by category
   const estimatedByCategory = useMemo(() => {
     const map = {}
     if (!currentItinerary?.days) return map
@@ -125,121 +125,176 @@ export default function BudgetTracker({ currentDay, isShared }) {
   }, [currentItinerary])
 
   return (
-    <div className="budget-tracker">
+    <div className="space-y-4">
       {/* Overview Cards */}
-      <div className="budget-overview">
-        <div className="budget-card">
-          <span className="budget-card-label">Budget</span>
-          <span className="budget-card-value">{budget ? `${currency} ${budget.toLocaleString()}` : '—'}</span>
-        </div>
-        <div className="budget-card">
-          <span className="budget-card-label">Speso</span>
-          <span className="budget-card-value spent">{currency} {allTotal.toLocaleString()}</span>
-        </div>
-        <div className="budget-card">
-          <span className="budget-card-label">Rimanente</span>
-          <span className={`budget-card-value ${isOver ? 'overbudget' : 'remaining'}`}>
-            {remaining !== null ? `${currency} ${remaining.toLocaleString()}` : '—'}
-          </span>
-        </div>
+      <div className="grid grid-cols-3 gap-3">
+        <Card shadow="sm">
+          <CardBody className="items-center gap-1 py-4">
+            <span className="text-xs text-default-500 uppercase tracking-wide">Budget</span>
+            <span className="font-heading text-lg text-foreground">
+              {budget ? `${currency} ${budget.toLocaleString()}` : '—'}
+            </span>
+          </CardBody>
+        </Card>
+        <Card shadow="sm">
+          <CardBody className="items-center gap-1 py-4">
+            <span className="text-xs text-default-500 uppercase tracking-wide">Spent</span>
+            <span className="font-heading text-lg text-danger">
+              {currency} {allTotal.toLocaleString()}
+            </span>
+          </CardBody>
+        </Card>
+        <Card shadow="sm">
+          <CardBody className="items-center gap-1 py-4">
+            <span className="text-xs text-default-500 uppercase tracking-wide">Remaining</span>
+            <span className={`font-heading text-lg ${isOver ? 'text-danger' : 'text-success'}`}>
+              {remaining !== null ? `${currency} ${remaining.toLocaleString()}` : '—'}
+            </span>
+          </CardBody>
+        </Card>
       </div>
 
       {/* Chart */}
-      <div className="budget-chart-container">
-        <h3 className="budget-section-title">Spese per categoria</h3>
-        <div style={{ maxWidth: 250, margin: '0 auto' }}>
-          <Pie data={chartData} options={chartOptions} />
-        </div>
-      </div>
+      <Card shadow="sm">
+        <CardBody>
+          <h3 className="font-heading text-base mb-3">Expenses by Category</h3>
+          <div className="max-w-[250px] mx-auto h-[250px]">
+            <Pie data={chartData} options={chartOptions} />
+          </div>
+        </CardBody>
+      </Card>
 
       {/* Estimated vs Actual */}
       {Object.keys(estimatedByCategory).length > 0 && (
-        <div className="budget-comparison">
-          <h3 className="budget-section-title">Stimato vs Effettivo</h3>
-          <div className="budget-comparison-list">
-            {BUDGET_CATEGORIES.filter(cat => estimatedByCategory[cat.id]).map(cat => (
-              <div key={cat.id} className="budget-comparison-row">
-                <span className="budget-comparison-label">{cat.icon} {cat.label}</span>
-                <span className="budget-comparison-estimated">{currency} {estimatedByCategory[cat.id].toLocaleString()}</span>
-                <span className="budget-comparison-actual">{currency} {(byCategory[cat.id] || 0).toLocaleString()}</span>
+        <Card shadow="sm">
+          <CardBody>
+            <h3 className="font-heading text-base mb-3">Estimated vs Actual</h3>
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 text-xs text-default-500 font-semibold">
+                <span>Category</span>
+                <span className="text-right">Estimated</span>
+                <span className="text-right">Actual</span>
               </div>
-            ))}
-          </div>
-        </div>
+              {BUDGET_CATEGORIES.filter(cat => estimatedByCategory[cat.id]).map(cat => (
+                <div key={cat.id} className="grid grid-cols-3 items-center text-sm">
+                  <span className="flex items-center gap-2">
+                    <span>{cat.icon}</span> {cat.label}
+                  </span>
+                  <span className="text-right text-default-500">
+                    {currency} {estimatedByCategory[cat.id].toLocaleString()}
+                  </span>
+                  <span className="text-right font-semibold text-foreground">
+                    {currency} {(byCategory[cat.id] || 0).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
       )}
 
       {/* Add Expense Form */}
       {!isShared && (
-        <div className="expense-form-section">
-          <h3 className="budget-section-title">Aggiungi spesa</h3>
-          <form className="expense-form" onSubmit={handleAdd}>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Importo"
-              min="0"
-              step="0.01"
-              required
-            />
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              {BUDGET_CATEGORIES.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
-              ))}
-            </select>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descrizione"
-            />
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-            <button type="submit" className="btn-primary btn-sm">
-              <i className="fas fa-plus"></i> Aggiungi
-            </button>
-          </form>
-        </div>
+        <Card shadow="sm">
+          <CardBody>
+            <h3 className="font-heading text-base mb-3">Add Expense</h3>
+            <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input
+                type="number"
+                label="Amount"
+                value={amount}
+                onValueChange={setAmount}
+                min="0"
+                step="0.01"
+                variant="bordered"
+                size="sm"
+                isRequired
+              />
+              <Select
+                label="Category"
+                selectedKeys={[category]}
+                onSelectionChange={(keys) => setCategory(Array.from(keys)[0])}
+                variant="bordered"
+                size="sm"
+              >
+                {BUDGET_CATEGORIES.map(cat => (
+                  <SelectItem key={cat.id}>{cat.icon} {cat.label}</SelectItem>
+                ))}
+              </Select>
+              <Input
+                label="Description"
+                value={description}
+                onValueChange={setDescription}
+                variant="bordered"
+                size="sm"
+              />
+              <Input
+                type="date"
+                label="Date"
+                value={date}
+                onValueChange={setDate}
+                variant="bordered"
+                size="sm"
+              />
+              <Button
+                type="submit"
+                color="primary"
+                startContent={<i className="fas fa-plus" />}
+                className="md:col-span-2"
+              >
+                Add Expense
+              </Button>
+            </form>
+          </CardBody>
+        </Card>
       )}
 
       {/* Expenses List */}
-      <div className="expense-list-section">
-        <h3 className="budget-section-title">
-          Spese {currentDay?.date ? `— Giorno ${currentDay.dayNumber}` : ''}
-          <span className="expense-list-total">{currency} {dayTotal.toLocaleString()}</span>
-        </h3>
-        {dayExpenses.length === 0 ? (
-          <p className="expense-list-empty">Nessuna spesa registrata</p>
-        ) : (
-          <div className="expense-list">
-            {dayExpenses.map(exp => {
-              const cat = getCategoryById(exp.category)
-              return (
-                <div key={exp.id} className="expense-item">
-                  <span className="expense-item-icon">{cat.icon}</span>
-                  <div className="expense-item-info">
-                    <span className="expense-item-desc">{exp.description || cat.label}</span>
-                    <span className="expense-item-meta">{cat.label}</span>
+      <Card shadow="sm">
+        <CardBody>
+          <h3 className="font-heading text-base mb-3 flex items-center justify-between">
+            <span>Expenses {currentDay?.date ? `— Day ${currentDay.dayNumber}` : ''}</span>
+            <span className="text-sm text-default-500 font-sans font-normal">
+              {currency} {dayTotal.toLocaleString()}
+            </span>
+          </h3>
+          {dayExpenses.length === 0 ? (
+            <p className="text-center text-default-400 text-sm py-6">No expenses recorded</p>
+          ) : (
+            <div className="space-y-2">
+              {dayExpenses.map(exp => {
+                const cat = getCategoryById(exp.category)
+                return (
+                  <div key={exp.id} className="flex items-center gap-3 p-3 rounded-medium bg-content2">
+                    <span className="text-xl">{cat.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-foreground truncate">
+                        {exp.description || cat.label}
+                      </div>
+                      <div className="text-xs text-default-500">{cat.label}</div>
+                    </div>
+                    <span className="font-semibold text-foreground">
+                      {currency} {exp.amount.toLocaleString()}
+                    </span>
+                    {!isShared && (
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        color="danger"
+                        onPress={() => handleDelete(exp.id)}
+                        aria-label="Delete expense"
+                      >
+                        <i className="fas fa-trash-alt" />
+                      </Button>
+                    )}
                   </div>
-                  <span className="expense-item-amount">{currency} {exp.amount.toLocaleString()}</span>
-                  {!isShared && (
-                    <button
-                      className="expense-item-delete"
-                      onClick={() => handleDelete(exp.id)}
-                      title="Elimina spesa"
-                    >
-                      <i className="fas fa-trash-alt"></i>
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                )
+              })}
+            </div>
+          )}
+        </CardBody>
+      </Card>
     </div>
   )
 }

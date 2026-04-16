@@ -1,44 +1,28 @@
-import { getApiConfig } from './storage'
+import pb from '../lib/pb'
 
 /**
- * Ottimizza l'ordine delle attività di un giorno minimizzando gli spostamenti
- * Usa l'IA se disponibile, altrimenti fallback geometrico (nearest-neighbor)
- * @param {Object} context - Itinerario completo
- * @param {number} dayIndex - Indice del giorno da ottimizzare
- * @returns {Promise<Object>} - Il giorno con attività riordinate
+ * Optimize the order of activities in a day by minimizing travel distance
+ * Uses AI via PocketBase proxy, with geometric fallback
  */
 export async function optimizeRoute(context, dayIndex) {
   const day = context.days[dayIndex]
   const activities = day.activities || []
 
-  // Separa attività con coordinate da quelle senza
   const withCoords = activities.filter(a => a.location?.lat && a.location?.lng && !(a.location.lat === 0 && a.location.lng === 0))
   const withoutCoords = activities.filter(a => !a.location?.lat || !a.location?.lng || (a.location.lat === 0 && a.location.lng === 0))
 
   if (withCoords.length < 3) {
-    // Pochi punti, non ha senso ottimizzare
     return { ...day, activities }
   }
 
-  // Prova con IA
   try {
-    const optimized = await optimizeRouteAI(context, dayIndex)
-    return optimized
+    return await optimizeRouteAI(context, dayIndex)
   } catch {
-    // Fallback: nearest-neighbor geometrico
     return optimizeRouteGeometric(day, withCoords, withoutCoords)
   }
 }
 
-/**
- * Ottimizzazione percorso con IA
- */
 async function optimizeRouteAI(context, dayIndex) {
-  const config = getApiConfig()
-  if (!config.url || !config.key) {
-    throw new Error('API non configurata')
-  }
-
   const day = context.days[dayIndex]
   const activities = day.activities || []
 
@@ -71,34 +55,15 @@ Return ONLY a JSON array of the optimized order with adjusted times:
   ...
 ]`
 
-  const response = await fetch(config.url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.key}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      messages: [
-        { role: 'system', content: 'You are a route optimization expert. Respond with ONLY valid JSON array, no markdown.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' },
-    }),
-  })
-
-  if (!response.ok) throw new Error('API error')
-
-  const data = await response.json()
-  const content = data.choices?.[0]?.message?.content
-  if (!content) throw new Error('Empty response')
+  // Use the chat endpoint for route optimization (it shares the rate limit)
+  const content = await sendChatRequest(
+    'You are a route optimization expert. Respond with ONLY valid JSON array, no markdown.',
+    prompt
+  )
 
   let parsed
   try {
     parsed = JSON.parse(content)
-    // L'IA potrebbe restituire un oggetto con una chiave "order" o direttamente un array
     if (Array.isArray(parsed)) {
       // ok
     } else if (parsed.order && Array.isArray(parsed.order)) {
@@ -112,26 +77,19 @@ Return ONLY a JSON array of the optimized order with adjusted times:
     throw new Error('Invalid route optimization response')
   }
 
-  // Riordina le attività secondo l'ordine ottimizzato
   const newActivities = []
   for (const item of parsed) {
     const act = activities.find(a => a.id === item.id)
     if (act) {
-      newActivities.push({
-        ...act,
-        time: item.time || act.time,
-      })
+      newActivities.push({ ...act, time: item.time || act.time })
     }
   }
-
-  // Aggiungi attività non trovate nell'ordine ottimizzato
   for (const act of activities) {
     if (!newActivities.find(a => a.id === act.id)) {
       newActivities.push(act)
     }
   }
 
-  // Ri-assegna ID
   newActivities.forEach((act, i) => {
     act.id = `d${dayIndex + 1}a${i + 1}`
   })
@@ -139,22 +97,30 @@ Return ONLY a JSON array of the optimized order with adjusted times:
   return { ...day, activities: newActivities }
 }
 
-/**
- * Fallback: ottimizzazione geometrica nearest-neighbor
- * Non usa l'IA, puro calcolo delle distanze
- */
+async function sendChatRequest(systemPrompt, userPrompt) {
+  const result = await pb.send('/api/chat', {
+    method: 'POST',
+    body: {
+      tripId: null,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ]
+    }
+  })
+  return result.content
+}
+
 function optimizeRouteGeometric(day, withCoords, withoutCoords) {
   if (withCoords.length < 2) return day
 
   const ordered = []
   const remaining = [...withCoords]
 
-  // Inizia dall'attività più a monte (prima per orario, o la prima)
   let current = remaining.shift()
   ordered.push(current)
 
   while (remaining.length > 0) {
-    // Trova l'attività più vicina a quella corrente
     let minDist = Infinity
     let minIdx = 0
 
@@ -173,10 +139,7 @@ function optimizeRouteGeometric(day, withCoords, withoutCoords) {
     ordered.push(current)
   }
 
-  // Aggiungi attività senza coordinate alla fine
   const allActivities = [...ordered, ...withoutCoords]
-
-  // Ri-assegna ID
   allActivities.forEach((act, i) => {
     act.id = `d${day.dayNumber}a${i + 1}`
   })
@@ -184,11 +147,8 @@ function optimizeRouteGeometric(day, withCoords, withoutCoords) {
   return { ...day, activities: allActivities }
 }
 
-/**
- * Distanza haversine tra due punti (in km)
- */
 function haversineDistance(lat1, lng1, lat2, lng2) {
-  const R = 6371 // km
+  const R = 6371
   const dLat = toRad(lat2 - lat1)
   const dLng = toRad(lng2 - lng1)
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -200,9 +160,6 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
 
 function toRad(deg) { return deg * Math.PI / 180 }
 
-/**
- * Calcola la distanza totale del percorso di un giorno (in km)
- */
 export function calculateRouteDistance(activities) {
   let total = 0
   for (let i = 0; i < activities.length - 1; i++) {

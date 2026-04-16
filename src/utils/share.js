@@ -1,14 +1,14 @@
 import lz from 'lz-string'
 
 /**
- * Codifica un viaggio in URL (hash fragment compresso)
- * @param {Object} trip - L'oggetto viaggio completo
- * @returns {string} - URL con hash fragment
+ * Encode a trip into URL (compressed hash fragment)
+ * @param {Object} trip - The full trip object
+ * @returns {string} - URL with hash fragment
  */
 export function encodeTripToUrl(trip) {
   if (!trip) return ''
 
-  // Riduci il payload: rimuovi campi pesanti non necessari per la visualizzazione
+  // Reduce payload: remove heavy fields not needed for display
   const lightweight = {
     id: trip.id,
     title: trip.title,
@@ -48,8 +48,8 @@ export function encodeTripToUrl(trip) {
 }
 
 /**
- * Decodifica un viaggio dall'URL
- * @returns {Object|null} - L'oggetto viaggio o null
+ * Decode a trip from URL
+ * @returns {Object|null} - The trip object or null
  */
 export function decodeTripFromUrl() {
   const hash = window.location.hash
@@ -66,27 +66,27 @@ export function decodeTripFromUrl() {
 }
 
 /**
- * Verifica se l'URL contiene un viaggio condiviso
+ * Check if the URL contains a shared trip
  */
 export function isSharedTrip() {
   return window.location.hash.startsWith('#trip=')
 }
 
 /**
- * Genera un link di condivisione
+ * Generate a share link
  */
 export function generateShareLink(trip) {
   const url = encodeTripToUrl(trip)
-  // Verifica che l'URL non sia troppo lungo (limite ~2000 caratteri per sicurezza)
-  if (url.length > 4000) {
-    console.warn('URL di condivisione troppo lungo:', url.length, 'caratteri')
+  // Modern browsers support much longer URLs (Chrome ~2MB, Safari ~80k)
+  if (url.length > 16000) {
+    console.warn('Share URL too long:', url.length, 'characters')
     return null
   }
   return url
 }
 
 /**
- * Copia un link negli appunti
+ * Copy a link to clipboard
  */
 export async function copyShareLink(trip) {
   const link = generateShareLink(trip)
@@ -96,7 +96,7 @@ export async function copyShareLink(trip) {
     await navigator.clipboard.writeText(link)
     return true
   } catch {
-    // Fallback per browser senza clipboard API
+    // Fallback for browsers without clipboard API
     const textarea = document.createElement('textarea')
     textarea.value = link
     textarea.style.position = 'fixed'
@@ -115,7 +115,7 @@ export async function copyShareLink(trip) {
 }
 
 /**
- * Pulisce l'hash dall'URL dopo aver caricato un viaggio condiviso
+ * Clear the hash from URL after loading a shared trip
  */
 export function clearShareHash() {
   if (window.location.hash.startsWith('#trip=')) {

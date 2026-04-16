@@ -13,11 +13,16 @@ export function setTheme(theme) {
 
 export function applyTheme(theme) {
   const resolved = resolveTheme(theme)
-  document.documentElement.setAttribute('data-theme', resolved)
+  const root = document.documentElement
+  // HeroUI + Tailwind use class-based dark mode
+  root.classList.remove('light', 'dark')
+  root.classList.add(resolved)
+  // Keep data-theme for any legacy CSS that still relies on it
+  root.setAttribute('data-theme', resolved)
   // Update meta theme-color for mobile browsers
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) {
-    meta.setAttribute('content', resolved === 'dark' ? '#1a1a2e' : '#1a1a2e')
+    meta.setAttribute('content', resolved === 'dark' ? '#0a0a12' : '#6366f1')
   }
 }
 

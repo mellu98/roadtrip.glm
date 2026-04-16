@@ -8,11 +8,11 @@ import { useUiStore } from '../store/uiStore'
 import MapController from './MapController'
 
 const TYPE_CONFIG = {
-  attraction: { icon: '🏛️', color: '#3d85c6', label: 'Attrazione' },
-  restaurant: { icon: '🍽️', color: '#e07a5f', label: 'Ristorante' },
-  transport: { icon: '🚗', color: '#636e72', label: 'Trasporto' },
-  activity: { icon: '🎯', color: '#81b29a', label: 'Attività' },
-  accommodation: { icon: '🏨', color: '#6c5ce7', label: 'Alloggio' },
+  attraction: { icon: '🏛️', color: '#6366f1', label: 'Attraction' },
+  restaurant: { icon: '🍽️', color: '#0ea5e9', label: 'Restaurant' },
+  transport: { icon: '🚗', color: '#64748b', label: 'Transport' },
+  activity: { icon: '🎯', color: '#10b981', label: 'Activity' },
+  accommodation: { icon: '🏨', color: '#8b5cf6', label: 'Accommodation' },
 }
 
 function getTypeConfig(type) {
@@ -21,9 +21,9 @@ function getTypeConfig(type) {
 
 function formatPrice(price) {
   if (!price) return ''
-  if (price.type === 'free') return 'Gratis'
+  if (price.type === 'free') return 'Free'
   const amt = price.amount ? `${price.currency || ''} ${price.amount}` : ''
-  const suffix = price.type === 'per person' ? '/persona' : ''
+  const suffix = price.type === 'per person' ? '/person' : ''
   return amt + suffix
 }
 
@@ -70,7 +70,7 @@ function createCustomIcon(activityType, number) {
 
 function FitBoundsButton({ activities }) {
   const map = useMapEvents({})
-  
+
   const handleFitBounds = () => {
     if (!activities || activities.length === 0) return
     const bounds = activities.map((a) => [a.location.lat, a.location.lng])
@@ -83,9 +83,10 @@ function FitBoundsButton({ activities }) {
 
   return (
     <button
-      className="map-fit-btn"
+      className="absolute bottom-4 right-4 z-[1000] w-9 h-9 bg-white rounded-lg shadow-lg flex items-center justify-center text-default-600 hover:bg-default-50 transition-colors"
       onClick={handleFitBounds}
-      title="Mostra tutti i punti"
+      title="Show all points"
+      style={{ border: 'none', cursor: 'pointer' }}
     >
       <i className="fas fa-expand"></i>
     </button>
@@ -99,7 +100,6 @@ export default function MapView() {
   const days = currentItinerary?.days || []
   const currentDay = days[activeDay]
 
-  // Filter activities that have valid coordinates
   const mapActivities = useMemo(() => {
     if (!currentDay?.activities) return []
     return currentDay.activities.filter(
@@ -108,16 +108,15 @@ export default function MapView() {
     )
   }, [currentDay])
 
-  // Build polyline positions from activities with coords
   const routePositions = useMemo(() => {
     return mapActivities.map((a) => [a.location.lat, a.location.lng])
   }, [mapActivities])
 
   if (mapActivities.length === 0) {
     return (
-      <div className="map-loading">
-        <i className="fas fa-map-marked-alt"></i>
-        <p>Nessuna posizione disponibile per questo giorno</p>
+      <div className="flex flex-col items-center justify-center py-10 text-default-500">
+        <i className="fas fa-map-marked-alt text-3xl mb-2" />
+        <p className="text-sm">No locations available for this day</p>
       </div>
     )
   }
@@ -126,7 +125,7 @@ export default function MapView() {
     <MapContainer
       center={[41.8902, 12.4922]}
       zoom={13}
-      className="map-container"
+      style={{ height: '350px', width: '100%' }}
       zoomControl={true}
       attributionControl={true}
     >
@@ -143,7 +142,7 @@ export default function MapView() {
         <Polyline
           positions={routePositions}
           pathOptions={{
-            color: '#e07a5f',
+            color: '#6366f1',
             weight: 3,
             opacity: 0.7,
             dashArray: '8, 8',
@@ -160,7 +159,7 @@ export default function MapView() {
           const count = cluster.getChildCount()
           return L.divIcon({
             html: `<div style="
-              background: #3d405b;
+              background: #6366f1;
               color: white;
               border-radius: 50%;
               width: 36px;
@@ -190,41 +189,41 @@ export default function MapView() {
               icon={icon}
             >
               <Popup>
-                <div className="map-popup">
-                  <div className="map-popup-header">
-                    <span
-                      className="map-popup-badge"
-                      style={{ background: config.color + '18', color: config.color }}
-                    >
+                <div style={{ minWidth: '180px', padding: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ background: config.color + '18', color: config.color, padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
                       {config.icon} {config.label}
                     </span>
-                    <span className="map-popup-number">#{idx + 1}</span>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>#{idx + 1}</span>
                   </div>
-                  <h4 className="map-popup-name">{activity.name}</h4>
-                  <div className="map-popup-info">
-                    {activity.time && (
-                      <span><i className="fas fa-clock"></i> {activity.time}</span>
-                    )}
-                    {activity.duration && (
-                      <span><i className="fas fa-hourglass-half"></i> {activity.duration}</span>
-                    )}
-                    {activity.price && (
-                      <span><i className="fas fa-tag"></i> {formatPrice(activity.price)}</span>
-                    )}
-                    {activity.rating && (
-                      <span className="map-popup-rating">★ {activity.rating}</span>
-                    )}
+                  <h4 style={{ fontWeight: 600, margin: '0 0 6px', fontSize: '14px' }}>{activity.name}</h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontSize: '12px', color: '#64748b' }}>
+                    {activity.time && <span>🕐 {activity.time}</span>}
+                    {activity.duration && <span>⏱ {activity.duration}</span>}
+                    {activity.price && <span>💰 {formatPrice(activity.price)}</span>}
+                    {activity.rating && <span style={{ color: '#f59e0b' }}>★ {activity.rating}</span>}
                   </div>
                   {activity.location?.address && (
-                    <p className="map-popup-address">
-                      <i className="fas fa-map-pin"></i> {activity.location.address}
+                    <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>
+                      📍 {activity.location.address}
                     </p>
                   )}
                   <button
-                    className="map-popup-action"
+                    style={{
+                      width: '100%',
+                      marginTop: '8px',
+                      padding: '6px',
+                      background: '#6366f1',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                    }}
                     onClick={() => selectActivity(activity)}
                   >
-                    <i className="fas fa-info-circle"></i> Dettagli
+                    Details
                   </button>
                 </div>
               </Popup>

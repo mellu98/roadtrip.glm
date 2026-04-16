@@ -51,9 +51,9 @@ export function setCurrentTrip(trip) {
 
 export function getApiConfig() {
   return {
-    url: localStorage.getItem(STORAGE_KEYS.API_URL) || '',
+    url: localStorage.getItem(STORAGE_KEYS.API_URL) || 'https://openrouter.ai/api/v1/chat/completions',
     key: localStorage.getItem(STORAGE_KEYS.API_KEY) || '',
-    model: localStorage.getItem(STORAGE_KEYS.API_MODEL) || 'gpt-4o-mini'
+    model: localStorage.getItem(STORAGE_KEYS.API_MODEL) || 'free'
   }
 }
 

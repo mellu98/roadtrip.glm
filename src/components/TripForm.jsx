@@ -1,49 +1,65 @@
 import { useState } from 'react'
+import { Button, Input, Textarea, Select, SelectItem, Card, CardBody, Chip, Slider, Progress } from '@heroui/react'
 import PlaceSearch from './PlaceSearch'
 
 const TRAVEL_STYLES = [
-  { id: 'adventure', label: 'Avventura', icon: '🏔️' },
-  { id: 'cultural', label: 'Culturale', icon: '🏛️' },
-  { id: 'relaxation', label: 'Relax', icon: '🏖️' },
-  { id: 'foodie', label: 'Gastronomico', icon: '🍽️' },
-  { id: 'nightlife', label: 'Vita Notturna', icon: '🌙' },
-  { id: 'nature', label: 'Natura', icon: '🌿' },
-  { id: 'budget', label: 'Economico', icon: '💰' },
-  { id: 'luxury', label: 'Lusso', icon: '💎' },
+  { id: 'adventure', label: 'Adventure', icon: '🏔️' },
+  { id: 'cultural', label: 'Cultural', icon: '🏛️' },
+  { id: 'relaxation', label: 'Relaxation', icon: '🏖️' },
+  { id: 'foodie', label: 'Foodie', icon: '🍽️' },
+  { id: 'nightlife', label: 'Nightlife', icon: '🌙' },
+  { id: 'nature', label: 'Nature', icon: '🌿' },
+  { id: 'budget', label: 'Budget', icon: '💰' },
+  { id: 'luxury', label: 'Luxury', icon: '💎' },
 ]
 
 const INTERESTS = [
-  { id: 'museums', label: 'Musei', icon: '🎨' },
-  { id: 'architecture', label: 'Architettura', icon: '🏰' },
-  { id: 'local-food', label: 'Cibo Locale', icon: '🍕' },
-  { id: 'photography', label: 'Fotografia', icon: '📸' },
+  { id: 'museums', label: 'Museums', icon: '🎨' },
+  { id: 'architecture', label: 'Architecture', icon: '🏰' },
+  { id: 'local-food', label: 'Local Food', icon: '🍕' },
+  { id: 'photography', label: 'Photography', icon: '📸' },
   { id: 'shopping', label: 'Shopping', icon: '🛍️' },
-  { id: 'history', label: 'Storia', icon: '📜' },
-  { id: 'nightlife', label: 'Vita Notturna', icon: '🎵' },
-  { id: 'outdoor', label: 'All\'aperto', icon: '⛺' },
-  { id: 'beaches', label: 'Spiagge', icon: '🌊' },
-  { id: 'markets', label: 'Mercati', icon: '🏪' },
-  { id: 'wine', label: 'Vino & Drink', icon: '🍷' },
-  { id: 'art', label: 'Arte', icon: '🎭' },
+  { id: 'history', label: 'History', icon: '📜' },
+  { id: 'nightlife', label: 'Nightlife', icon: '🎵' },
+  { id: 'outdoor', label: 'Outdoor', icon: '⛺' },
+  { id: 'beaches', label: 'Beaches', icon: '🌊' },
+  { id: 'markets', label: 'Markets', icon: '🏪' },
+  { id: 'wine', label: 'Wine & Drinks', icon: '🍷' },
+  { id: 'art', label: 'Art', icon: '🎭' },
 ]
 
 const COMPANIONS = [
-  { id: 'solo', label: 'Da solo', icon: '🧳' },
-  { id: 'couple', label: 'In coppia', icon: '💑' },
-  { id: 'family', label: 'Famiglia', icon: '👨‍👩‍👧‍👦' },
-  { id: 'friends', label: 'Amici', icon: '🎉' },
-  { id: 'group', label: 'Gruppo grande', icon: '👨‍👨‍👧‍👧' },
+  { id: 'solo', label: 'Solo', icon: '🧳' },
+  { id: 'couple', label: 'Couple', icon: '💑' },
+  { id: 'family', label: 'Family', icon: '👨‍👩‍👧‍👦' },
+  { id: 'friends', label: 'Friends', icon: '🎉' },
+  { id: 'group', label: 'Large Group', icon: '👨‍👨‍👧‍👧' },
 ]
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'BRL', 'ARS', 'MXN', 'CAD', 'AUD']
 
 const STEPS = [
-  { title: 'Dove & Quando', subtitle: 'Scegli la tua destinazione' },
-  { title: 'Budget & Durata', subtitle: 'Definisci le tue risorse' },
-  { title: 'Stile di Viaggio', subtitle: 'Come ti piace viaggiare?' },
-  { title: 'Interessi', subtitle: 'Cosa ti appassiona?' },
-  { title: 'Riepilogo', subtitle: 'Controlla e genera' },
+  { title: 'Where & When', subtitle: 'Choose your destination', emoji: '🌍' },
+  { title: 'Budget & Duration', subtitle: 'Define your resources', emoji: '💰' },
+  { title: 'Travel Style', subtitle: 'How do you like to travel?', emoji: '✨' },
+  { title: 'Interests', subtitle: 'What are you passionate about?', emoji: '🎯' },
+  { title: 'Summary', subtitle: 'Review and generate', emoji: '📋' },
 ]
+
+function ChoiceChip({ active, onPress, icon, label }) {
+  return (
+    <Chip
+      variant={active ? 'solid' : 'bordered'}
+      color={active ? 'primary' : 'default'}
+      className="cursor-pointer transition-all"
+      startContent={<span className="text-base">{icon}</span>}
+      onClick={onPress}
+      size="lg"
+    >
+      {label}
+    </Chip>
+  )
+}
 
 export default function TripForm({ onGenerate, onBack }) {
   const [step, setStep] = useState(0)
@@ -75,7 +91,6 @@ export default function TripForm({ onGenerate, onBack }) {
     }))
   }
 
-  // Auto-calculate duration from dates
   const handleDateChange = (field, value) => {
     update(field, value)
     const other = field === 'startDate' ? form.endDate : form.startDate
@@ -96,42 +111,46 @@ export default function TripForm({ onGenerate, onBack }) {
     }
   }
 
-  const handleSubmit = () => {
-    onGenerate(form)
-  }
+  const handleSubmit = () => onGenerate(form)
+
+  const currentStep = STEPS[step]
+  const progressValue = ((step + 1) / STEPS.length) * 100
 
   return (
-    <div className="trip-form-container">
-      <div className="form-header">
-        <button className="btn-icon" onClick={onBack} title="Torna indietro">
-          <i className="fas fa-arrow-left"></i>
-        </button>
-        <div className="form-header-text">
-          <h1>Nuovo Viaggio</h1>
-          <p className="form-subtitle">{STEPS[step].subtitle}</p>
+    <div className="max-w-2xl mx-auto px-4 py-6 md:py-10 pb-28 min-h-screen flex flex-col">
+      <header className="flex items-center gap-3 mb-6">
+        <Button
+          isIconOnly
+          variant="flat"
+          onPress={onBack}
+          aria-label="Go back"
+        >
+          <i className="fas fa-arrow-left" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-xl md:text-2xl font-bold">New Trip</h1>
+          <p className="text-sm text-default-500">{currentStep.subtitle}</p>
         </div>
-        <div className="step-indicator">{step + 1}/{STEPS.length}</div>
-      </div>
+        <Chip variant="flat" color="primary" size="sm">{step + 1}/{STEPS.length}</Chip>
+      </header>
 
-      <div className="progress-bar">
-        {STEPS.map((_, i) => (
-          <div
-            key={i}
-            className={`progress-segment ${i < step ? 'completed' : ''} ${i === step ? 'active' : ''}`}
-            onClick={() => i < step && setStep(i)}
-          />
-        ))}
-      </div>
+      <Progress
+        aria-label="Progress"
+        value={progressValue}
+        color="primary"
+        size="sm"
+        className="mb-8"
+      />
 
-      <div className="form-step">
+      <div className="flex-1">
         {step === 0 && (
-          <div className="step-content">
-            <div className="step-intro">
-              <span className="step-emoji">🌍</span>
-              <h2>{STEPS[0].title}</h2>
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl">{currentStep.emoji}</span>
+              <h2 className="text-2xl font-bold">{currentStep.title}</h2>
             </div>
-            <div className="form-group">
-              <label>Destinazione</label>
+            <div>
+              <label className="text-sm font-semibold mb-2 block">Destination</label>
               <PlaceSearch
                 value={form.destination}
                 onChange={(val) => update('destination', val)}
@@ -142,118 +161,137 @@ export default function TripForm({ onGenerate, onBack }) {
                     update('destinationLng', place.lng)
                   }
                 }}
-                placeholder="Es: Roma, Tokyo, Patagonia..."
+                placeholder="e.g. Rome, Tokyo, Patagonia..."
               />
             </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Data di inizio</label>
-                <input
-                  type="date"
-                  value={form.startDate}
-                  onChange={e => handleDateChange('startDate', e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              <div className="form-group">
-                <label>Data di fine</label>
-                <input
-                  type="date"
-                  value={form.endDate}
-                  onChange={e => handleDateChange('endDate', e.target.value)}
-                  min={form.startDate || new Date().toISOString().split('T')[0]}
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                type="date"
+                label="Start date"
+                value={form.startDate}
+                onValueChange={(v) => handleDateChange('startDate', v)}
+                min={new Date().toISOString().split('T')[0]}
+                variant="bordered"
+              />
+              <Input
+                type="date"
+                label="End date"
+                value={form.endDate}
+                onValueChange={(v) => handleDateChange('endDate', v)}
+                min={form.startDate || new Date().toISOString().split('T')[0]}
+                variant="bordered"
+              />
             </div>
           </div>
         )}
 
         {step === 1 && (
-          <div className="step-content">
-            <div className="step-intro">
-              <span className="step-emoji">💰</span>
-              <h2>{STEPS[1].title}</h2>
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl">{currentStep.emoji}</span>
+              <h2 className="text-2xl font-bold">{currentStep.title}</h2>
             </div>
-            <div className="form-group">
-              <label>Durata del viaggio</label>
-              <div className="duration-control">
-                <button onClick={() => update('duration', Math.max(1, form.duration - 1))}>
-                  <i className="fas fa-minus"></i>
-                </button>
-                <div className="duration-display">
-                  <span className="duration-number">{form.duration}</span>
-                  <span className="duration-label">{form.duration === 1 ? 'giorno' : 'giorni'}</span>
+            <div>
+              <label className="text-sm font-semibold mb-3 block">Trip duration</label>
+              <div className="flex items-center justify-center gap-4 p-6 bg-content2 rounded-xl">
+                <Button
+                  isIconOnly
+                  variant="flat"
+                  onPress={() => update('duration', Math.max(1, form.duration - 1))}
+                  aria-label="Fewer days"
+                >
+                  <i className="fas fa-minus" />
+                </Button>
+                <div className="flex flex-col items-center min-w-[100px]">
+                  <span className="text-5xl font-extrabold text-primary">{form.duration}</span>
+                  <span className="text-sm text-default-500">
+                    {form.duration === 1 ? 'day' : 'days'}
+                  </span>
                 </div>
-                <button onClick={() => update('duration', form.duration + 1)}>
-                  <i className="fas fa-plus"></i>
-                </button>
+                <Button
+                  isIconOnly
+                  variant="flat"
+                  onPress={() => update('duration', form.duration + 1)}
+                  aria-label="More days"
+                >
+                  <i className="fas fa-plus" />
+                </Button>
               </div>
             </div>
-            <div className="form-group">
-              <label>Budget totale</label>
-              <div className="budget-input">
-                <select value={form.currency} onChange={e => update('currency', e.target.value)}>
-                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <input
+            <div>
+              <label className="text-sm font-semibold mb-3 block">Total budget</label>
+              <div className="flex gap-2 mb-3">
+                <Select
+                  selectedKeys={[form.currency]}
+                  onSelectionChange={(keys) => update('currency', Array.from(keys)[0])}
+                  className="max-w-28"
+                  variant="bordered"
+                  aria-label="Currency"
+                >
+                  {CURRENCIES.map(c => <SelectItem key={c}>{c}</SelectItem>)}
+                </Select>
+                <Input
                   type="number"
-                  value={form.budget}
-                  onChange={e => update('budget', parseInt(e.target.value) || 0)}
+                  value={String(form.budget)}
+                  onValueChange={(v) => update('budget', parseInt(v) || 0)}
                   min={100}
                   step={100}
-                  className="input-large"
+                  variant="bordered"
+                  size="lg"
                 />
               </div>
-              <input
-                type="range"
-                min={100}
-                max={10000}
+              <Slider
+                aria-label="Budget"
+                minValue={100}
+                maxValue={10000}
                 step={100}
                 value={form.budget}
-                onChange={e => update('budget', parseInt(e.target.value))}
-                className="budget-slider"
+                onChange={(v) => update('budget', Array.isArray(v) ? v[0] : v)}
+                color="primary"
+                showTooltip
               />
-              <div className="budget-labels">
+              <div className="flex justify-between text-xs text-default-400 mt-1">
                 <span>100</span>
-                <span>10.000</span>
+                <span>10,000</span>
               </div>
             </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="step-content">
-            <div className="step-intro">
-              <span className="step-emoji">✨</span>
-              <h2>{STEPS[2].title}</h2>
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl">{currentStep.emoji}</span>
+              <h2 className="text-2xl font-bold">{currentStep.title}</h2>
             </div>
-            <div className="form-group">
-              <label>Come ti piace viaggiare? <span className="label-hint">(seleziona uno o più)</span></label>
-              <div className="chip-grid">
+            <div>
+              <label className="text-sm font-semibold mb-3 block">
+                How do you like to travel?
+                <span className="text-default-400 font-normal ml-1">(select one or more)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
                 {TRAVEL_STYLES.map(s => (
-                  <button
+                  <ChoiceChip
                     key={s.id}
-                    className={`chip ${form.travelStyle.includes(s.id) ? 'active' : ''}`}
-                    onClick={() => toggleArray('travelStyle', s.id)}
-                  >
-                    <span className="chip-icon">{s.icon}</span>
-                    {s.label}
-                  </button>
+                    active={form.travelStyle.includes(s.id)}
+                    onPress={() => toggleArray('travelStyle', s.id)}
+                    icon={s.icon}
+                    label={s.label}
+                  />
                 ))}
               </div>
             </div>
-            <div className="form-group">
-              <label>Con chi viaggi?</label>
-              <div className="chip-grid">
+            <div>
+              <label className="text-sm font-semibold mb-3 block">Who are you traveling with?</label>
+              <div className="flex flex-wrap gap-2">
                 {COMPANIONS.map(c => (
-                  <button
+                  <ChoiceChip
                     key={c.id}
-                    className={`chip ${form.companions === c.id ? 'active' : ''}`}
-                    onClick={() => update('companions', form.companions === c.id ? '' : c.id)}
-                  >
-                    <span className="chip-icon">{c.icon}</span>
-                    {c.label}
-                  </button>
+                    active={form.companions === c.id}
+                    onPress={() => update('companions', form.companions === c.id ? '' : c.id)}
+                    icon={c.icon}
+                    label={c.label}
+                  />
                 ))}
               </div>
             </div>
@@ -261,142 +299,171 @@ export default function TripForm({ onGenerate, onBack }) {
         )}
 
         {step === 3 && (
-          <div className="step-content">
-            <div className="step-intro">
-              <span className="step-emoji">🎯</span>
-              <h2>{STEPS[3].title}</h2>
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl">{currentStep.emoji}</span>
+              <h2 className="text-2xl font-bold">{currentStep.title}</h2>
             </div>
-            <div className="form-group">
-              <label>I tuoi interessi <span className="label-hint">(seleziona uno o più)</span></label>
-              <div className="chip-grid">
+            <div>
+              <label className="text-sm font-semibold mb-3 block">
+                Your interests
+                <span className="text-default-400 font-normal ml-1">(select one or more)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
                 {INTERESTS.map(i => (
-                  <button
+                  <ChoiceChip
                     key={i.id}
-                    className={`chip ${form.interests.includes(i.id) ? 'active' : ''}`}
-                    onClick={() => toggleArray('interests', i.id)}
-                  >
-                    <span className="chip-icon">{i.icon}</span>
-                    {i.label}
-                  </button>
+                    active={form.interests.includes(i.id)}
+                    onPress={() => toggleArray('interests', i.id)}
+                    icon={i.icon}
+                    label={i.label}
+                  />
                 ))}
               </div>
             </div>
-            <div className="form-group">
-              <label>Luoghi imperdibili</label>
-              <input
-                type="text"
-                value={form.mustSee}
-                onChange={e => update('mustSee', e.target.value)}
-                placeholder="Es: Colosseo, Trastevere, Vatican..."
-              />
-            </div>
-            <div className="form-group">
-              <label>Restrizioni alimentari</label>
-              <input
-                type="text"
-                value={form.dietaryRestrictions}
-                onChange={e => update('dietaryRestrictions', e.target.value)}
-                placeholder="Es: Vegetariano, senza glutine..."
-              />
-            </div>
-            <div className="form-group">
-              <label>Note aggiuntive</label>
-              <textarea
-                value={form.additionalNotes}
-                onChange={e => update('additionalNotes', e.target.value)}
-                placeholder="Qualsiasi altra cosa dovrei sapere..."
-                rows={3}
-              />
-            </div>
+            <Input
+              label="Must-see places"
+              value={form.mustSee}
+              onValueChange={(v) => update('mustSee', v)}
+              placeholder="e.g. Colosseum, Trastevere, Vatican..."
+              variant="bordered"
+            />
+            <Input
+              label="Dietary restrictions"
+              value={form.dietaryRestrictions}
+              onValueChange={(v) => update('dietaryRestrictions', v)}
+              placeholder="e.g. Vegetarian, gluten-free..."
+              variant="bordered"
+            />
+            <Textarea
+              label="Additional notes"
+              value={form.additionalNotes}
+              onValueChange={(v) => update('additionalNotes', v)}
+              placeholder="Anything else I should know..."
+              variant="bordered"
+              minRows={3}
+            />
           </div>
         )}
 
         {step === 4 && (
-          <div className="step-content">
-            <div className="step-intro">
-              <span className="step-emoji">📋</span>
-              <h2>{STEPS[4].title}</h2>
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl">{currentStep.emoji}</span>
+              <h2 className="text-2xl font-bold">{currentStep.title}</h2>
             </div>
-            <div className="review-card">
-              <div className="review-destination">
-                <h3>{form.destination || 'Destinazione non impostata'}</h3>
-                {form.startDate && form.endDate && (
-                  <p><i className="fas fa-calendar"></i> {form.startDate} → {form.endDate}</p>
+            <Card shadow="sm" className="border border-default-200">
+              <CardBody className="gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-foreground">
+                    {form.destination || 'No destination set'}
+                  </h3>
+                  <div className="mt-2 space-y-1 text-sm text-default-600">
+                    {form.startDate && form.endDate && (
+                      <p className="flex items-center gap-2">
+                        <i className="fas fa-calendar text-primary/60" />
+                        {form.startDate} → {form.endDate}
+                      </p>
+                    )}
+                    <p className="flex items-center gap-2">
+                      <i className="fas fa-clock text-primary/60" />
+                      {form.duration} {form.duration === 1 ? 'day' : 'days'}
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <i className="fas fa-wallet text-primary/60" />
+                      {form.currency} {form.budget?.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                {form.travelStyle.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-default-700 mb-2">Travel style</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {form.travelStyle.map(id => {
+                        const s = TRAVEL_STYLES.find(t => t.id === id)
+                        return s ? (
+                          <Chip key={id} variant="flat" color="primary" size="sm">
+                            {s.icon} {s.label}
+                          </Chip>
+                        ) : null
+                      })}
+                    </div>
+                  </div>
                 )}
-                <p><i className="fas fa-clock"></i> {form.duration} {form.duration === 1 ? 'giorno' : 'giorni'}</p>
-                <p><i className="fas fa-wallet"></i> {form.currency} {form.budget?.toLocaleString()}</p>
-              </div>
 
-              {form.travelStyle.length > 0 && (
-                <div className="review-section">
-                  <h4>Stile di viaggio</h4>
-                  <div className="review-chips">
-                    {form.travelStyle.map(id => {
-                      const s = TRAVEL_STYLES.find(t => t.id === id)
-                      return s ? <span key={id} className="review-chip">{s.icon} {s.label}</span> : null
-                    })}
+                {form.companions && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-default-700 mb-2">Companions</h4>
+                    <Chip variant="flat" color="primary" size="sm">
+                      {COMPANIONS.find(c => c.id === form.companions)?.icon}{' '}
+                      {COMPANIONS.find(c => c.id === form.companions)?.label}
+                    </Chip>
                   </div>
-                </div>
-              )}
+                )}
 
-              {form.companions && (
-                <div className="review-section">
-                  <h4>Compagni</h4>
-                  <span className="review-chip">
-                    {COMPANIONS.find(c => c.id === form.companions)?.icon}{' '}
-                    {COMPANIONS.find(c => c.id === form.companions)?.label}
-                  </span>
-                </div>
-              )}
-
-              {form.interests.length > 0 && (
-                <div className="review-section">
-                  <h4>Interessi</h4>
-                  <div className="review-chips">
-                    {form.interests.map(id => {
-                      const i = INTERESTS.find(t => t.id === id)
-                      return i ? <span key={id} className="review-chip">{i.icon} {i.label}</span> : null
-                    })}
+                {form.interests.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-default-700 mb-2">Interests</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {form.interests.map(id => {
+                        const i = INTERESTS.find(t => t.id === id)
+                        return i ? (
+                          <Chip key={id} variant="flat" color="primary" size="sm">
+                            {i.icon} {i.label}
+                          </Chip>
+                        ) : null
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {(form.mustSee || form.dietaryRestrictions || form.additionalNotes) && (
-                <div className="review-section">
-                  <h4>Dettagli extra</h4>
-                  {form.mustSee && <p><strong>Imperdibili:</strong> {form.mustSee}</p>}
-                  {form.dietaryRestrictions && <p><strong>Dieta:</strong> {form.dietaryRestrictions}</p>}
-                  {form.additionalNotes && <p><strong>Note:</strong> {form.additionalNotes}</p>}
-                </div>
-              )}
-            </div>
+                {(form.mustSee || form.dietaryRestrictions || form.additionalNotes) && (
+                  <div className="space-y-1.5 text-sm">
+                    <h4 className="text-sm font-semibold text-default-700 mb-1">Extra details</h4>
+                    {form.mustSee && <p><strong>Must-see:</strong> {form.mustSee}</p>}
+                    {form.dietaryRestrictions && <p><strong>Diet:</strong> {form.dietaryRestrictions}</p>}
+                    {form.additionalNotes && <p><strong>Notes:</strong> {form.additionalNotes}</p>}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
           </div>
         )}
       </div>
 
-      <div className="form-actions">
-        {step > 0 && (
-          <button className="btn-secondary" onClick={() => setStep(step - 1)}>
-            <i className="fas fa-arrow-left"></i> Indietro
-          </button>
-        )}
-        <div className="form-actions-spacer" />
-        {step < STEPS.length - 1 ? (
-          <button
-            className="btn-primary"
-            onClick={() => setStep(step + 1)}
-            disabled={!canProceed()}
+      <div className="flex items-center justify-between gap-3 mt-8 sticky bottom-4">
+        {step > 0 ? (
+          <Button
+            variant="flat"
+            onPress={() => setStep(step - 1)}
+            startContent={<i className="fas fa-arrow-left" />}
           >
-            Avanti <i className="fas fa-arrow-right"></i>
-          </button>
+            Back
+          </Button>
         ) : (
-          <button
-            className="btn-generate"
-            onClick={handleSubmit}
-            disabled={!canProceed()}
+          <span />
+        )}
+        {step < STEPS.length - 1 ? (
+          <Button
+            color="primary"
+            onPress={() => setStep(step + 1)}
+            isDisabled={!canProceed()}
+            endContent={<i className="fas fa-arrow-right" />}
           >
-            <i className="fas fa-magic"></i> Genera Itinerario
-          </button>
+            Next
+          </Button>
+        ) : (
+          <Button
+            color="primary"
+            size="lg"
+            onPress={handleSubmit}
+            isDisabled={!canProceed()}
+            startContent={<i className="fas fa-magic" />}
+            className="shadow-lg"
+          >
+            Generate Itinerary
+          </Button>
         )}
       </div>
     </div>

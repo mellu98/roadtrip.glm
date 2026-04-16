@@ -14,7 +14,6 @@ export const useUiStore = create((set) => ({
   activeDay: 0,
   selectedActivity: null,
   mobileDetailOpen: false,
-  showApiSetup: false,
   error: null,
   theme: getTheme(),
   subView: 'itinerary',
@@ -25,7 +24,6 @@ export const useUiStore = create((set) => ({
   selectActivity: (activity) => set({ selectedActivity: activity, mobileDetailOpen: true }),
   setSubView: (subView) => set({ subView }),
   closeMobileDetail: () => set({ mobileDetailOpen: false, selectedActivity: null }),
-  toggleApiSetup: (show) => set({ showApiSetup: show ?? ((s) => !s.showApiSetup) }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
   goHome: () => set({ view: VIEWS.HOME, activeDay: 0, selectedActivity: null, mobileDetailOpen: false, error: null }),
@@ -40,7 +38,6 @@ if (typeof window !== 'undefined') {
   listenToSystemTheme((resolved) => {
     const currentTheme = useUiStore.getState().theme
     if (currentTheme === 'system') {
-      // Force re-render by setting theme to same value (triggers subscribers)
       useUiStore.setState({ theme: 'system' })
     }
   })

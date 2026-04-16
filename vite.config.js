@@ -1,17 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico'],
       manifest: {
         name: 'RoadTrip Planner',
         short_name: 'RoadTrip',
-        description: 'Pianifica il tuo viaggio perfetto',
+        description: 'Plan your perfect road trip',
         theme_color: '#1a1a2e',
         background_color: '#faf8f5',
         display: 'standalone',

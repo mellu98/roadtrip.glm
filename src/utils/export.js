@@ -1,14 +1,14 @@
 /**
- * Export del viaggio in formato JSON (backup completo)
+ * Export trip in JSON format (full backup)
  */
 export function exportJSON(trip) {
   const json = JSON.stringify(trip, null, 2)
   const blob = new Blob([json], { type: 'application/json' })
-  downloadBlob(blob, `${sanitizeFilename(trip.title || 'viaggio')}.json`)
+  downloadBlob(blob, `${sanitizeFilename(trip.title || 'trip')}.json`)
 }
 
 /**
- * Import di un viaggio da file JSON
+ * Import trip from JSON file
  */
 export function importJSON(file) {
   return new Promise((resolve, reject) => {
@@ -17,21 +17,21 @@ export function importJSON(file) {
       try {
         const trip = JSON.parse(e.target.result)
         if (!trip.days || !Array.isArray(trip.days)) {
-          reject(new Error('Formato JSON non valido: manca il campo "days"'))
+          reject(new Error('Invalid JSON format: missing field "days"'))
           return
         }
         resolve(trip)
       } catch (err) {
-        reject(new Error('File JSON non valido: ' + err.message))
+        reject(new Error('Invalid JSON file: ' + err.message))
       }
     }
-    reader.onerror = () => reject(new Error('Errore nella lettura del file'))
+    reader.onerror = () => reject(new Error('Error reading file'))
     reader.readAsText(file)
   })
 }
 
 /**
- * Export del viaggio in formato iCal (eventi calendario)
+ * Export trip in iCal format (calendar events)
  */
 export function exportICal(trip) {
   const lines = [
@@ -50,7 +50,7 @@ export function exportICal(trip) {
       const time = act.time.replace(':', '') + '00' // HHmmss
       const startDT = `${date}T${time}`
 
-      // Durata stimata (default 1 ora)
+      // Estimated duration (default 1 hour)
       let durationHours = 1
       if (act.duration) {
         const match = act.duration.match(/(\d+)/)
@@ -65,7 +65,7 @@ export function exportICal(trip) {
       lines.push('BEGIN:VEVENT')
       lines.push(`DTSTART:${startDT}`)
       lines.push(`DTEND:${endDT}`)
-      lines.push(`SUMMARY:${escapeICal(act.name || 'Attività')}`)
+      lines.push(`SUMMARY:${escapeICal(act.name || 'Activity')}`)
       if (act.description) lines.push(`DESCRIPTION:${escapeICal(act.description)}`)
       if (act.location?.address) lines.push(`LOCATION:${escapeICal(act.location.address)}`)
       lines.push(`UID:roadtrip-${trip.id}-${act.id}`)
@@ -77,14 +77,14 @@ export function exportICal(trip) {
 
   const content = lines.join('\r\n')
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' })
-  downloadBlob(blob, `${sanitizeFilename(trip.title || 'viaggio')}.ics`)
+  downloadBlob(blob, `${sanitizeFilename(trip.title || 'trip')}.ics`)
 }
 
 /**
- * Export del viaggio in formato Markdown
+ * Export trip in Markdown format
  */
 export function exportMarkdown(trip) {
-  let md = `# ${trip.title || 'Il Tuo Viaggio'}\n\n`
+  let md = `# ${trip.title || 'Your Trip'}\n\n`
 
   if (trip.summary) md += `> ${trip.summary}\n\n`
 
@@ -93,42 +93,42 @@ export function exportMarkdown(trip) {
   }
 
   if (trip.totalEstimatedCost) {
-    md += `**Budget stimato:** ${trip.totalEstimatedCost.currency} ${trip.totalEstimatedCost.amount}\n\n`
+    md += `**Estimated budget:** ${trip.totalEstimatedCost.currency} ${trip.totalEstimatedCost.amount}\n\n`
   }
 
   if (trip.tips?.length) {
-    md += `## 💡 Consigli\n\n`
+    md += `## 💡 Tips\n\n`
     trip.tips.forEach(tip => { md += `- ${tip}\n` })
     md += '\n'
   }
 
   trip.days?.forEach(day => {
-    md += `## Giorno ${day.dayNumber} — ${day.theme || ''}\n\n`
-    if (day.date) md += `**Data:** ${day.date}\n\n`
+    md += `## Day ${day.dayNumber} — ${day.theme || ''}\n\n`
+    if (day.date) md += `**Date:** ${day.date}\n\n`
     if (day.overview) md += `${day.overview}\n\n`
 
     day.activities?.forEach(act => {
       const icon = getActivityIconMd(act.type)
       md += `### ${icon} ${act.name}\n\n`
-      if (act.time) md += `- **Orario:** ${act.time}`
+      if (act.time) md += `- **Time:** ${act.time}`
       if (act.duration) md += ` (${act.duration})`
       md += '\n'
-      if (act.price?.amount) md += `- **Prezzo:** ${act.price.currency || ''} ${act.price.amount}${act.price.type === 'per person' ? '/persona' : ''}\n`
-      if (act.rating) md += `- **Valutazione:** ★ ${act.rating}/5\n`
+      if (act.price?.amount) md += `- **Price:** ${act.price.currency || ''} ${act.price.amount}${act.price.type === 'per person' ? '/person' : ''}\n`
+      if (act.rating) md += `- **Rating:** ★ ${act.rating}/5\n`
       if (act.description) md += `- ${act.description}\n`
       if (act.location?.address) md += `- 📍 ${act.location.address}\n`
       md += '\n'
     })
 
     if (day.dailyCost) {
-      md += `**Costo giornaliero:** ${day.dailyCost.currency || ''} ${day.dailyCost.amount || 0}\n\n`
+      md += `**Daily cost:** ${day.dailyCost.currency || ''} ${day.dailyCost.amount || 0}\n\n`
     }
 
     md += '---\n\n'
   })
 
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' })
-  downloadBlob(blob, `${sanitizeFilename(trip.title || 'viaggio')}.md`)
+  downloadBlob(blob, `${sanitizeFilename(trip.title || 'trip')}.md`)
 }
 
 // --- Utility ---

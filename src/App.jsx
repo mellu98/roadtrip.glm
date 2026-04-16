@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Button, Card, CardBody } from '@heroui/react'
 import { useTripStore } from './store/tripStore'
 import { useUiStore, VIEWS } from './store/uiStore'
-import { useApiStore } from './store/apiStore'
 import { isSharedTrip, decodeTripFromUrl, clearShareHash } from './utils/share'
 import { isOnline, onConnectionChange } from './utils/offline'
-import ApiKeySetup from './components/ApiKeySetup'
+import pb from './lib/pb'
+import AuthScreen from './components/AuthScreen'
 import TripForm from './components/TripForm'
 import LoadingScreen from './components/LoadingScreen'
 import Itinerary from './components/Itinerary'
@@ -14,19 +15,33 @@ import { getTheme, applyTheme } from './utils/theme'
 
 export default function App() {
   const { currentItinerary, isSaved, loadTrips, loadCurrentTrip, setItinerary, saveTrip, clearCurrent } = useTripStore()
-  const { view, showApiSetup, error, theme, setView, goHome, toggleApiSetup, setError, clearError } = useUiStore()
-  const { isConfigured } = useApiStore()
+  const { view, error, theme, setView, goHome, setError, clearError } = useUiStore()
 
   const [online, setOnline] = useState(true)
+  const [authReady, setAuthReady] = useState(false)
 
+  // Check auth state
   useEffect(() => {
-    setOnline(isOnline())
-    const unsub = onConnectionChange(setOnline)
-    return unsub
+    // Apply saved theme immediately
+    const savedTheme = getTheme()
+    applyTheme(savedTheme)
+
+    // Listen for auth state changes
+    const unsub = pb.authStore.onChange(() => {
+      setAuthReady(true)
+    })
+
+    // Initial check
+    setAuthReady(true)
+
+    return () => unsub()
   }, [])
 
+  // Load data after auth
   useEffect(() => {
-    // Check for shared trip in URL
+    if (!pb.authStore.isValid) return
+
+    // Handle shared trip from URL
     if (isSharedTrip()) {
       const sharedTrip = decodeTripFromUrl()
       if (sharedTrip) {
@@ -43,19 +58,18 @@ export default function App() {
     const loaded = loadCurrentTrip()
     if (loaded) {
       setView(VIEWS.ITINERARY)
-      // Fetch meteo anche per viaggi salvati
       useTripStore.getState().fetchWeatherForTrip()
     }
-    // Initialize theme
-    const savedTheme = getTheme()
-    applyTheme(savedTheme)
+  }, [pb.authStore.token])
+
+  // Online/offline
+  useEffect(() => {
+    setOnline(isOnline())
+    const unsub = onConnectionChange(setOnline)
+    return unsub
   }, [])
 
   const handleNewTrip = () => {
-    if (!isConfigured) {
-      toggleApiSetup(true)
-      return
-    }
     setError(null)
     setView(VIEWS.FORM)
   }
@@ -76,7 +90,6 @@ export default function App() {
         createdAt: new Date().toISOString(),
       }
       setItinerary(trip)
-      // Fetch meteo in background (non blocca la navigazione)
       useTripStore.getState().fetchWeatherForTrip()
       setView(VIEWS.ITINERARY)
     } catch (err) {
@@ -90,65 +103,67 @@ export default function App() {
     goHome()
   }
 
+  const handleLogout = () => {
+    pb.authStore.clear()
+    useTripStore.getState().clearCurrent()
+    goHome()
+  }
+
+  const cycleTheme = () => {
+    const current = useUiStore.getState().theme
+    const next = current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light'
+    useUiStore.getState().setTheme(next)
+  }
+
+  // Not authenticated → show login
+  if (!authReady) return null
+  if (!pb.authStore.isValid) return <AuthScreen />
+
   return (
-    <div className="app">
+    <div className="min-h-screen bg-background text-foreground">
       {!online && (
-        <div className="offline-banner">
-          <i className="fas fa-wifi-slash"></i> Sei offline — i viaggi salvati sono ancora disponibili
+        <div className="sticky top-0 z-50 bg-warning/90 text-warning-foreground px-4 py-2 text-sm flex items-center justify-center gap-2 no-print">
+          <i className="fas fa-wifi-slash" /> You're offline — saved trips are still available
         </div>
       )}
-      {view === VIEWS.HOME && (
-        <SavedTrips onNewTrip={handleNewTrip} />
-      )}
-      {view === VIEWS.FORM && (
-        <TripForm onGenerate={handleGenerate} onBack={handleBack} />
-      )}
-      {view === VIEWS.LOADING && (
-        <LoadingScreen destination={currentItinerary?.destination} />
-      )}
-      {view === VIEWS.ITINERARY && currentItinerary && (
-        <Itinerary onBack={handleBack} />
-      )}
-      {showApiSetup && (
-        <ApiKeySetup />
-      )}
+
+      {view === VIEWS.HOME && <SavedTrips onNewTrip={handleNewTrip} onLogout={handleLogout} />}
+      {view === VIEWS.FORM && <TripForm onGenerate={handleGenerate} onBack={handleBack} />}
+      {view === VIEWS.LOADING && <LoadingScreen destination={currentItinerary?.destination} />}
+      {view === VIEWS.ITINERARY && currentItinerary && <Itinerary onBack={handleBack} />}
+
       {error && (
-        <div className="error-toast">
-          <div className="error-toast-content">
-            <i className="fas fa-exclamation-triangle"></i>
-            <div>
-              <strong>Errore</strong>
-              <p>{error}</p>
+        <Card className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] w-[min(420px,calc(100vw-2rem))] shadow-xl animate-fade-slide-in no-print border border-danger/20">
+          <CardBody className="gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-exclamation-triangle text-danger text-sm" />
+              </div>
+              <div className="flex-1">
+                <strong className="block text-base">Error</strong>
+                <p className="text-sm text-default-500 mt-1">{error}</p>
+              </div>
+              <Button isIconOnly size="sm" variant="light" onPress={clearError} aria-label="Close error">
+                <i className="fas fa-times" />
+              </Button>
             </div>
-            <button className="btn-icon" onClick={clearError}>
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-          <div className="error-toast-actions">
-            <button className="btn-secondary btn-sm" onClick={clearError}>Chiudi</button>
-            <button className="btn-primary btn-sm" onClick={() => toggleApiSetup(true)}>
-              <i className="fas fa-cog"></i> Impostazioni API
-            </button>
-          </div>
-        </div>
+            <div className="flex gap-2 justify-end">
+              <Button size="sm" variant="flat" onPress={clearError}>Close</Button>
+            </div>
+          </CardBody>
+        </Card>
       )}
-      {view === VIEWS.HOME && !showApiSetup && (
-        <button className="fab-settings" onClick={() => toggleApiSetup(true)} title="Impostazioni API">
-          <i className="fas fa-cog"></i>
-        </button>
-      )}
-      {/* Theme Toggle */}
-      <button
-        className="fab-theme"
-        onClick={() => {
-          const current = useUiStore.getState().theme
-          const next = current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light'
-          useUiStore.getState().setTheme(next)
-        }}
-        title={`Tema: ${theme === 'light' ? 'Chiaro' : theme === 'dark' ? 'Scuro' : 'Sistema'}`}
+
+      <Button
+        isIconOnly
+        variant="flat"
+        radius="full"
+        className="fixed bottom-6 left-6 shadow-lg z-40 no-print"
+        onPress={cycleTheme}
+        aria-label={`Theme: ${theme}`}
       >
-        <i className={`fas ${theme === 'dark' ? 'fa-moon' : theme === 'light' ? 'fa-sun' : 'fa-desktop'}`}></i>
-      </button>
+        <i className={`fas ${theme === 'dark' ? 'fa-moon' : theme === 'light' ? 'fa-sun' : 'fa-desktop'}`} />
+      </Button>
     </div>
   )
 }

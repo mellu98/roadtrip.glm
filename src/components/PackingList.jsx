@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button, Input, Checkbox, Progress, Chip } from '@heroui/react'
 import { useTripStore } from '../store/tripStore'
 import { categorizeItem, getCategories, getPackingTemplates, mergeWithAIList } from '../utils/packing'
 
@@ -20,9 +21,7 @@ function savePackingState(tripId, state) {
     const all = raw ? JSON.parse(raw) : {}
     all[tripId] = state
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
-  } catch {
-    // localStorage pieno, ignora
-  }
+  } catch {}
 }
 
 export default function PackingList() {
@@ -32,9 +31,7 @@ export default function PackingList() {
   const [packingState, setPackingState] = useState(() => {
     if (!tripId) return {}
     const saved = getPackingState(tripId)
-    // Se ci sono già stati salvati, usali; altrimenti inizializza
     if (Object.keys(saved).length > 0) return saved
-    // Inizializza tutti gli item come non spuntati
     const initial = {}
     itinerary?.packingList?.forEach((item, i) => {
       initial[`ai_${i}`] = false
@@ -51,7 +48,6 @@ export default function PackingList() {
   const [newItem, setNewItem] = useState('')
   const [showTemplates, setShowTemplates] = useState(false)
 
-  // Costruisci la lista completa: AI items + custom items
   const aiItems = (itinerary?.packingList || []).map((item, i) => ({
     id: `ai_${i}`,
     text: item,
@@ -68,7 +64,6 @@ export default function PackingList() {
 
   const allItems = [...aiItems, ...customListItems]
 
-  // Raggruppa per categoria
   const categories = getCategories()
   const grouped = categories
     .map(cat => ({
@@ -77,7 +72,6 @@ export default function PackingList() {
     }))
     .filter(cat => cat.items.length > 0)
 
-  // Conteggi
   const totalItems = allItems.length
   const checkedItems = allItems.filter(item => packingState[item.id]).length
   const progress = totalItems > 0 ? (checkedItems / totalItems) * 100 : 0
@@ -103,10 +97,8 @@ export default function PackingList() {
   const removeCustomItem = (index) => {
     const newCustom = customItems.filter((_, i) => i !== index)
     setCustomItems(newCustom)
-    // Rimuovi anche lo stato
     const newState = { ...packingState }
     delete newState[`custom_${index}`]
-    // Ri-indicizza i custom rimanenti
     newCustom.forEach((_, i) => {
       const oldId = `custom_${i}`
       const shiftId = `custom_${i + 1}`
@@ -126,13 +118,11 @@ export default function PackingList() {
 
     const existingItems = [...(itinerary?.packingList || []), ...customItems]
     const merged = mergeWithAIList(existingItems, template.items)
-    // I nuovi item sono quelli non già presenti nei custom
     const newCustom = merged.filter(
       item => !(itinerary?.packingList || []).includes(item)
     )
     setCustomItems(newCustom)
 
-    // Inizializza i nuovi item come non spuntati
     const newState = { ...packingState }
     newCustom.forEach((_, i) => {
       newState[`custom_${i}`] = false
@@ -146,73 +136,87 @@ export default function PackingList() {
   const templates = getPackingTemplates()
 
   return (
-    <div className="packing-list">
-      <div className="packing-header">
-        <h3><i className="fas fa-suitcase-rolling"></i> Cosa Portare</h3>
-        <div className="packing-progress-container">
-          <div className="packing-progress-text">
-            {checkedItems}/{totalItems} item
-          </div>
-          <div className="packing-progress-bar">
-            <div
-              className="packing-progress-fill"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+    <div className="mt-6 pt-6 border-t border-default-200">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        <h3 className="font-heading text-lg flex items-center gap-2">
+          <i className="fas fa-suitcase-rolling text-primary" /> Packing List
+        </h3>
+        <div className="flex items-center gap-2 min-w-[140px]">
+          <span className="text-xs text-default-500 font-semibold whitespace-nowrap">
+            {checkedItems}/{totalItems}
+          </span>
+          <Progress
+            size="sm"
+            value={progress}
+            color="primary"
+            aria-label="Packing progress"
+            className="w-20"
+          />
         </div>
       </div>
 
-      {/* Template button */}
-      <button
-        className="packing-template-btn"
-        onClick={() => setShowTemplates(!showTemplates)}
+      <Button
+        variant="bordered"
+        className="w-full border-dashed mb-3"
+        startContent={<i className="fas fa-plus-circle" />}
+        onPress={() => setShowTemplates(!showTemplates)}
+        size="sm"
       >
-        <i className="fas fa-plus-circle"></i> Aggiungi da template
-      </button>
+        Add from template
+      </Button>
 
       {showTemplates && (
-        <div className="packing-templates">
+        <div className="flex flex-wrap gap-2 mb-3">
           {Object.entries(templates).map(([key, tmpl]) => (
-            <button
+            <Chip
               key={key}
-              className="packing-template-option"
+              variant="flat"
+              color="primary"
+              className="cursor-pointer hover:opacity-80"
               onClick={() => applyTemplate(key)}
             >
               {tmpl.name}
-            </button>
+            </Chip>
           ))}
         </div>
       )}
 
-      {/* Categorie */}
       {grouped.map(cat => (
-        <div key={cat.id} className="packing-category">
-          <div className="packing-category-header">
-            <span className="packing-category-icon">{cat.icon}</span>
-            <span className="packing-category-label">{cat.label}</span>
-            <span className="packing-category-count">
+        <div key={cat.id} className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">{cat.icon}</span>
+            <span className="font-semibold text-foreground">{cat.label}</span>
+            <span className="text-xs text-default-500 ml-auto">
               {cat.items.filter(i => packingState[i.id]).length}/{cat.items.length}
             </span>
           </div>
-          <ul className="packing-items">
+          <ul className="space-y-1">
             {cat.items.map(item => (
-              <li key={item.id} className={`packing-item ${packingState[item.id] ? 'checked' : ''}`}>
-                <label className="packing-item-label">
-                  <input
-                    type="checkbox"
-                    checked={!!packingState[item.id]}
-                    onChange={() => toggleItem(item.id)}
-                  />
-                  <span className="packing-item-text">{item.text}</span>
-                </label>
+              <li
+                key={item.id}
+                className="flex items-center gap-2 py-1 group"
+              >
+                <Checkbox
+                  isSelected={!!packingState[item.id]}
+                  onValueChange={() => toggleItem(item.id)}
+                  size="sm"
+                  classNames={{
+                    label: packingState[item.id] ? 'line-through text-default-400' : 'text-foreground',
+                  }}
+                >
+                  {item.text}
+                </Checkbox>
                 {item.isCustom && (
-                  <button
-                    className="packing-item-remove"
-                    onClick={() => removeCustomItem(parseInt(item.id.split('_')[1]))}
-                    title="Rimuovi"
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    className="ml-auto opacity-0 group-hover:opacity-100"
+                    onPress={() => removeCustomItem(parseInt(item.id.split('_')[1]))}
+                    aria-label="Remove item"
                   >
-                    <i className="fas fa-times"></i>
-                  </button>
+                    <i className="fas fa-times text-default-400" />
+                  </Button>
                 )}
               </li>
             ))}
@@ -220,18 +224,24 @@ export default function PackingList() {
         </div>
       ))}
 
-      {/* Aggiungi item personalizzato */}
-      <div className="packing-add">
-        <input
-          type="text"
+      <div className="flex gap-2 mt-4">
+        <Input
+          size="sm"
           value={newItem}
-          onChange={e => setNewItem(e.target.value)}
+          onValueChange={setNewItem}
           onKeyDown={e => e.key === 'Enter' && addCustomItem()}
-          placeholder="Aggiungi un item..."
+          placeholder="Add an item..."
+          variant="bordered"
         />
-        <button className="btn-primary btn-sm" onClick={addCustomItem} disabled={!newItem.trim()}>
-          <i className="fas fa-plus"></i>
-        </button>
+        <Button
+          color="primary"
+          isIconOnly
+          onPress={addCustomItem}
+          isDisabled={!newItem.trim()}
+          aria-label="Add"
+        >
+          <i className="fas fa-plus" />
+        </Button>
       </div>
     </div>
   )

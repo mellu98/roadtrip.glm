@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: roadtrip-pb
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/pb_data
+      - ./pb_hooks:/pb_hooks
+      - ./pb_migrations:/pb_migrations
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - APP_URL=${APP_URL:-http://localhost:8090}
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8090/api/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  pb_data:

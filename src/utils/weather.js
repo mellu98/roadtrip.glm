@@ -1,7 +1,7 @@
 const WEATHER_CACHE_KEY = 'roadtrip_weather_cache'
-const WEATHER_CACHE_TTL = 3 * 60 * 60 * 1000 // 3 ore
+const WEATHER_CACHE_TTL = 3 * 60 * 60 * 1000 // 3 hours
 
-// Codici WMO → emoji + descrizione
+// WMO codes → emoji + description
 const WMO_CODES = {
   0:  { emoji: '☀️', desc: 'Sereno', descEn: 'Clear sky' },
   1:  { emoji: '🌤️', desc: 'Prevalentemente sereno', descEn: 'Mainly clear' },
@@ -48,7 +48,7 @@ function setCache(key, data) {
     cache[key] = { data, timestamp: Date.now() }
     localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(cache))
   } catch {
-    // localStorage pieno, ignora
+    // localStorage full, ignore
   }
 }
 
@@ -61,12 +61,12 @@ function getCached(key) {
 }
 
 /**
- * Fetch previsioni meteo da Open-Meteo API (gratuita, no API key)
- * @param {number} lat - Latitudine
- * @param {number} lng - Longitudine
- * @param {string} startDate - Data inizio (YYYY-MM-DD)
- * @param {string} endDate - Data fine (YYYY-MM-DD)
- * @returns {Promise<Array>} Array di oggetti { date, weatherCode, tempMax, tempMin, precipitation, windSpeed }
+ * Fetch weather forecasts from Open-Meteo API (free, no API key)
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDate - End date (YYYY-MM-DD)
+ * @returns {Promise<Array>} Array of objects { date, weatherCode, tempMax, tempMin, precipitation, windSpeed }
  */
 export async function fetchWeather(lat, lng, startDate, endDate) {
   if (!lat || !lng || lat === 0 && lng === 0) return []
@@ -109,7 +109,7 @@ export async function fetchWeather(lat, lng, startDate, endDate) {
 }
 
 /**
- * Fetch medie climatiche storiche come fallback
+ * Fetch historical climate averages as fallback
  */
 export async function fetchClimateAverages(lat, lng) {
   if (!lat || !lng || lat === 0 && lng === 0) return null
@@ -136,21 +136,21 @@ export async function fetchClimateAverages(lat, lng) {
 }
 
 /**
- * Restituisce emoji per codice WMO
+ * Returns emoji for WMO code
  */
 export function getWeatherEmoji(code) {
   return WMO_CODES[code]?.emoji || '🌡️'
 }
 
 /**
- * Restituisce descrizione italiana per codice WMO
+ * Returns English description for WMO code
  */
 export function getWeatherDescription(code) {
-  return WMO_CODES[code]?.desc || 'Sconosciuto'
+  return WMO_CODES[code]?.descEn || 'Unknown'
 }
 
 /**
- * Trova il meteo per una data specifica nell'array di previsioni
+ * Find weather for a specific date in the forecasts array
  */
 export function getWeatherForDate(forecasts, date) {
   if (!forecasts || !date) return null

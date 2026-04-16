@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.*
+pocketbase/
+*.md
+.DS_Store
+.claude/

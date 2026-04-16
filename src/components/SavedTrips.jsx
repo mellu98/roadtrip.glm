@@ -1,8 +1,8 @@
 import { useRef } from 'react'
+import { Button, Card, CardBody, CardFooter, CardHeader } from '@heroui/react'
 import { useTripStore } from '../store/tripStore'
 import { useUiStore, VIEWS } from '../store/uiStore'
 import { importJSON } from '../utils/export'
-import { useTranslation } from '../i18n'
 
 const EMOJIS = ['🇮🇹', '🇪🇸', '🇫🇷', '🇯🇵', '🇬🇧', '🇩🇪', '🇺🇸', '🇧🇷', '🇦🇷', '🇲🇽', '🇬🇷', '🇵🇹', '🇹🇭', '🇲🇦', '🇭🇷', '🌍']
 
@@ -14,7 +14,7 @@ function getTripEmoji(name) {
 function formatDate(dateStr) {
   if (!dateStr) return ''
   try {
-    return new Date(dateStr).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
+    return new Date(dateStr).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
   } catch {
     return dateStr
   }
@@ -26,11 +26,10 @@ function daysBetween(start, end) {
   return diff > 0 ? diff : null
 }
 
-export default function SavedTrips({ onNewTrip }) {
+export default function SavedTrips({ onNewTrip, onLogout }) {
   const { trips, deleteTrip, loadTrip, saveTrip } = useTripStore()
   const { setView } = useUiStore()
   const fileInputRef = useRef(null)
-  const { lang, setLang } = useTranslation()
 
   const handleLoadTrip = (trip) => {
     loadTrip(trip)
@@ -46,94 +45,133 @@ export default function SavedTrips({ onNewTrip }) {
       trip.createdAt = new Date().toISOString()
       saveTrip(trip)
     } catch (err) {
-      alert('Errore nell\'importazione: ' + err.message)
+      alert('Import error: ' + err.message)
     }
-    // Reset file input
     e.target.value = ''
   }
 
   return (
-    <div className="saved-trips">
-      <div className="home-header">
-        <div className="home-brand">
-          <span className="home-logo">🗺️</span>
+    <div className="max-w-6xl mx-auto px-4 py-6 md:py-10 pb-28">
+      <header className="flex items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <span className="text-2xl">🗺️</span>
+          </div>
           <div>
-            <h1>RoadTrip Planner</h1>
-            <p className="home-tagline">Il tuo viaggio perfetto, pianificato dall'IA</p>
+            <h1 className="text-2xl md:text-4xl font-extrabold text-foreground tracking-tight">RoadTrip Planner</h1>
+            <p className="text-sm text-default-500">Your perfect trip, planned by AI</p>
           </div>
         </div>
-        <button className="lang-toggle" onClick={() => setLang(lang === 'it' ? 'en' : 'it')}>
-          {lang === 'it' ? '🇬🇧 EN' : '🇮🇹 IT'}
-        </button>
-      </div>
+        {onLogout && (
+          <Button variant="flat" size="sm" onPress={onLogout} startContent={<i className="fas fa-sign-out-alt" />}>
+            Logout
+          </Button>
+        )}
+      </header>
 
-      <button className="btn-new-trip" onClick={onNewTrip}>
-        <i className="fas fa-plus"></i>
-        <span>Nuovo Viaggio</span>
-      </button>
+      <Button
+        color="primary"
+        size="lg"
+        fullWidth
+        className="h-20 text-lg font-semibold mb-8 shadow-md"
+        onPress={onNewTrip}
+        startContent={<i className="fas fa-plus text-xl" />}
+      >
+        New Trip
+      </Button>
 
       {trips.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">✈️</div>
-          <h2>Nessun viaggio salvato</h2>
-          <p>Crea il tuo primo itinerario e lo troverai qui</p>
-          <button className="btn-primary" onClick={onNewTrip}>
-            <i className="fas fa-plus"></i> Crea il primo viaggio
-          </button>
-        </div>
+        <Card className="py-10 border border-default-200">
+          <CardBody className="items-center text-center gap-3">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <span className="text-4xl">✈️</span>
+            </div>
+            <h2 className="text-xl font-bold">No saved trips</h2>
+            <p className="text-default-500 max-w-sm">
+              Create your first itinerary and you'll find it here
+            </p>
+            <Button
+              color="primary"
+              size="lg"
+              onPress={onNewTrip}
+              startContent={<i className="fas fa-plus" />}
+              className="mt-2"
+            >
+              Create your first trip
+            </Button>
+          </CardBody>
+        </Card>
       ) : (
-        <div className="trips-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {trips.map(trip => (
-            <div key={trip.id} className="trip-card">
-              <div className="trip-card-header">
-                <span className="trip-card-emoji">{getTripEmoji(trip.destination || trip.title || '')}</span>
-                <button
-                  className="btn-icon-sm btn-danger"
-                  onClick={() => {
-                    if (window.confirm(`Eliminare "${trip.title || trip.destination}"?`)) {
+            <Card
+              key={trip.id}
+              isPressable
+              onPress={() => handleLoadTrip(trip)}
+              shadow="sm"
+              className="hover:shadow-lg transition-all hover:-translate-y-0.5 border border-default-200"
+            >
+              <CardHeader className="flex items-center justify-between pb-0">
+                <span className="text-4xl">{getTripEmoji(trip.destination || trip.title || '')}</span>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  color="danger"
+                  onPress={(e) => {
+                    if (window.confirm(`Delete "${trip.title || trip.destination}"?`)) {
                       deleteTrip(trip.id)
                     }
                   }}
-                  title="Elimina"
+                  aria-label="Delete trip"
                 >
-                  <i className="fas fa-trash"></i>
-                </button>
-              </div>
-              <div className="trip-card-body">
-                <h3>{trip.title || trip.destination || 'Viaggio senza nome'}</h3>
+                  <i className="fas fa-trash" />
+                </Button>
+              </CardHeader>
+              <CardBody className="gap-1 text-left">
+                <h3 className="text-lg font-bold text-foreground">
+                  {trip.title || trip.destination || 'Untitled Trip'}
+                </h3>
                 {trip.destination && trip.title && trip.title !== trip.destination && (
-                  <p className="trip-card-dest">{trip.destination}</p>
+                  <p className="text-sm text-default-500">{trip.destination}</p>
                 )}
                 {(trip.startDate || trip.endDate) && (
-                  <p className="trip-card-dates">
-                    <i className="fas fa-calendar-alt"></i>
+                  <p className="text-sm text-default-600 flex items-center gap-1.5 mt-2">
+                    <i className="fas fa-calendar-alt text-primary/60" />
                     {formatDate(trip.startDate)}
                     {trip.startDate && trip.endDate && ' → '}
                     {formatDate(trip.endDate)}
                     {daysBetween(trip.startDate, trip.endDate) && (
-                      <span className="trip-card-days"> ({daysBetween(trip.startDate, trip.endDate)} gg)</span>
+                      <span className="text-default-400">({daysBetween(trip.startDate, trip.endDate)} days)</span>
                     )}
                   </p>
                 )}
                 {trip.formData?.budget && (
-                  <p className="trip-card-budget">
-                    <i className="fas fa-wallet"></i>
+                  <p className="text-sm text-default-600 flex items-center gap-1.5">
+                    <i className="fas fa-wallet text-primary/60" />
                     {trip.formData.currency || 'EUR'} {trip.formData.budget?.toLocaleString()}
                   </p>
                 )}
                 {trip.totalEstimatedCost && (
-                  <p className="trip-card-cost">
-                    <i className="fas fa-receipt"></i>
-                    Stimato: {trip.totalEstimatedCost.currency} {trip.totalEstimatedCost.amount?.toLocaleString()}
+                  <p className="text-sm text-default-600 flex items-center gap-1.5">
+                    <i className="fas fa-receipt text-primary/60" />
+                    Estimated: {trip.totalEstimatedCost.currency} {trip.totalEstimatedCost.amount?.toLocaleString()}
                   </p>
                 )}
-              </div>
-              <div className="trip-card-footer">
-                <button className="btn-primary btn-sm" onClick={() => handleLoadTrip(trip)}>
-                  <i className="fas fa-eye"></i> Apri
-                </button>
-              </div>
-            </div>
+              </CardBody>
+              <CardFooter className="pt-0">
+                <Button
+                  color="primary"
+                  size="sm"
+                  fullWidth
+                  variant="flat"
+                  startContent={<i className="fas fa-eye" />}
+                  onPress={() => handleLoadTrip(trip)}
+                >
+                  Open
+                </Button>
+              </CardFooter>
+            </Card>
           ))}
         </div>
       )}
@@ -145,9 +183,14 @@ export default function SavedTrips({ onNewTrip }) {
         style={{ display: 'none' }}
         onChange={handleImport}
       />
-      <button className="import-btn" onClick={() => fileInputRef.current?.click()}>
-        <i className="fas fa-file-import"></i> Importa viaggio
-      </button>
+      <Button
+        variant="flat"
+        className="mt-6"
+        startContent={<i className="fas fa-file-import" />}
+        onPress={() => fileInputRef.current?.click()}
+      >
+        Import trip
+      </Button>
     </div>
   )
 }
